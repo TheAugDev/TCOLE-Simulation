@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Code and Crash Investigations Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .correct {
+            background-color: #d1fae5; /* green-100 */
+            border-color: #10b981; /* green-500 */
+        }
+        .incorrect {
+            background-color: #fee2e2; /* red-100 */
+            border-color: #ef4444; /* red-500 */
+        }
+        .explanation {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="quiz-container" class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="bg-white p-8 rounded-2xl shadow-lg">
+            <h1 class="text-3xl font-bold text-center text-gray-900 mb-2">Traffic Quiz (Final Boss Version)</h1>
+            <p class="text-center text-gray-500 mb-8">Practice Version: Review answers as you go.</p>
+
+            <div id="start-screen">
+                <p class="text-lg mb-6 text-center">This ultimate final practice quiz now contains 318 questions covering every detail from your handout. After each answer, you'll see a detailed explanation with references. Click "Start Practice" to begin.</p>
+                <button id="start-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors duration-300 text-lg">Start Practice</button>
+            </div>
+
+            <div id="quiz-screen" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div id="question-counter" class="text-sm font-semibold text-gray-600"></div>
+                    <div id="timer" class="text-sm font-semibold text-indigo-600">Time: 0s</div>
+                    <div id="score-counter" class="text-sm font-semibold text-gray-600">Score: 0 / 0</div>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                    <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <div id="question-card" class="mb-6 p-6 bg-gray-50 rounded-xl border border-gray-200">
+                    <h2 id="question-text" class="text-xl font-semibold mb-5"></h2>
+                    <div id="options-container" class="space-y-3"></div>
+                </div>
+                <button id="next-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors duration-300 disabled:bg-gray-400" disabled>Next Question</button>
+            </div>
+
+            <div id="result-screen" class="hidden text-center">
+                <h2 class="text-2xl font-bold mb-4">Practice Complete!</h2>
+                <p class="text-5xl font-bold mb-4" id="final-score"></p>
+                <p class="text-lg text-gray-600 mb-2" id="total-time"></p>
+                <p class="text-lg text-gray-600 mb-8" id="score-message"></p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button id="restart-btn" class="w-full sm:w-auto bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors duration-300">Restart Practice</button>
+                    <button id="review-btn" class="w-full sm:w-auto bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors duration-300">Review All Answers</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="review-section" class="hidden mt-8">
+             <h2 class="text-2xl font-bold text-center mb-6">Answer Review</h2>
+             <div id="review-container" class="space-y-6"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const reviewBtn = document.getElementById('review-btn');
+        
+        const questionCounter = document.getElementById('question-counter');
+        const scoreCounter = document.getElementById('score-counter');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        
+        const timerElement = document.getElementById('timer');
+        const progressBar = document.getElementById('progress-bar');
+        
+        const finalScore = document.getElementById('final-score');
+        const scoreMessage = document.getElementById('score-message');
+        const totalTimeElement = document.getElementById('total-time');
+        
+        const reviewSection = document.getElementById('review-section');
+        const reviewContainer = document.getElementById('review-container');
+
+        // --- Quiz Data with References ---
+        const quizData = [
+            {
+                question: "According to TC 472.021, a person commits an offense if they tamper with what?",
+                options: ["A traffic signal", "A stop sign", "A warning device", "A speed limit sign"],
+                answer: "A warning device",
+                explanation: "Transportation Code 472.021 specifically addresses tampering with warning devices such as signs and barricades at a construction or repair site.",
+                reference: "Handout Page 1: 22.28 - TC 472.021"
+            },
+            {
+                question: "What is a driver's duty regarding warning signs and barricades under TC 472.022?",
+                options: ["They may disregard them if no workers are present.", "They must comply with the directions given by them.", "They are only suggestions.", "They only apply during daytime hours."],
+                answer: "They must comply with the directions given by them.",
+                explanation: "Transportation Code 472.022 mandates that drivers must obey the directions of any official warning signs or barricades.",
+                reference: "Handout Page 1: 22.28 - TC 472.022"
+            },
+            {
+                question: "Under TC 600.001, who is responsible for removing injurious material dropped or thrown on a highway?",
+                options: ["The local police department.", "The Department of Transportation.", "The person who dropped it or the owner of the vehicle.", "The first driver who discovers it."],
+                answer: "The person who dropped it or the owner of the vehicle.",
+                explanation: "Transportation Code 600.001 places the responsibility on the person who dropped or threw the material to immediately remove it or cause it to be removed.",
+                reference: "Handout Page 1: 22.29 - TC 600.001"
+            },
+            {
+                question: "According to TC 550.021, what is the operator's duty in a crash involving personal injury or death?",
+                options: ["Immediately stop, render aid, and remain at the scene.", "Leave the scene and report the crash later.", "Exchange insurance information only.", "Wait for a peace officer to arrive before doing anything."],
+                answer: "Immediately stop, render aid, and remain at the scene.",
+                explanation: "This statute requires a driver involved in a crash with injury or death to immediately stop at or as close to the scene as possible without obstructing traffic, render aid, and provide required information.",
+                reference: "Handout Page 1: 21.31 - TC 550.021"
+            },
+            {
+                question: "What is a driver's duty under TC 550.022 after a crash involving only damage to a vehicle?",
+                options: ["They can leave if the damage is minor.", "Immediately stop at or as close to the scene as possible without obstructing traffic.", "Call their insurance company and then leave.", "Wait for the other driver to leave first."],
+                answer: "Immediately stop at or as close to the scene as possible without obstructing traffic.",
+                explanation: "Even if there are no injuries, a driver must stop at the scene (or as close as is safe) when there is damage to another occupied vehicle.",
+                reference: "Handout Page 1: 21.31 - TC 550.022"
+            },
+            {
+                question: "Under TC 550.023, the 'duty to give information and render aid' requires providing your name, address, registration number, and what else?",
+                options: ["Your social security number", "Show your driver's license upon request", "Your destination", "Your phone number"],
+                answer: "Show your driver's license upon request",
+                explanation: "The statute requires giving specific identifying information and also showing a driver's license if requested and available.",
+                reference: "Handout Page 1: 21.31 - TC 550.023"
+            },
+            {
+                question: "What is a driver's duty under TC 550.024 after striking an unattended vehicle?",
+                options: ["Leave a note with your information and then leave.", "Immediately stop and locate the operator or owner, or leave a note in a conspicuous place.", "If the damage is minor, you are not required to do anything.", "Wait at the scene for up to 10 minutes for the owner to return."],
+                answer: "Immediately stop and locate the operator or owner, or leave a note in a conspicuous place.",
+                explanation: "The driver must make a reasonable effort to locate the owner. If they cannot, they must leave a written notice containing their name, address, and a statement of the circumstances.",
+                reference: "Handout Page 1: 21.31 - TC 550.024"
+            },
+            {
+                question: "If a driver strikes a fixture or highway landscaping (like a sign or tree), what is their duty under TC 550.025?",
+                options: ["Take all reasonable steps to locate and notify the owner.", "If the property is government-owned, no report is needed.", "Leave the scene if no one saw the crash.", "Only report it if the damage is over $1,000."],
+                answer: "Take all reasonable steps to locate and notify the owner.",
+                explanation: "The driver has a legal duty to attempt to locate the property owner and provide their information, similar to striking an unattended vehicle.",
+                reference: "Handout Page 1: 21.31 - TC 550.025"
+            },
+            {
+                question: "Under TC 550.026, when must an operator of a vehicle involved in a crash make an immediate report?",
+                options: ["For all crashes, regardless of damage.", "If the crash results in injury, death, or damage to a vehicle to the extent that it cannot be normally and safely driven.", "Only if requested by the other driver.", "Only if the crash occurs on a highway."],
+                answer: "If the crash results in injury, death, or damage to a vehicle to the extent that it cannot be normally and safely driven.",
+                explanation: "This statute defines the threshold for when a crash is serious enough to require an immediate report by the quickest means of communication.",
+                reference: "Handout Page 1: 21.31 - TC 550.026"
+            },
+            {
+                question: "What form is the 'Texas Peace Officer's Crash Report'?",
+                options: ["CR-80", "CR-100", "CR-3", "VIN-130"],
+                answer: "CR-3",
+                explanation: "The CR-3 is the official form used by law enforcement in Texas to document a traffic crash investigation.",
+                reference: "Handout Page 6: 22.35 - Form CR-3"
+            },
+            {
+                question: "Which of the following is a key procedure for a law enforcement officer responding to a traffic crash scene?",
+                options: ["Plan the route of approach.", "Position the patrol unit to protect the scene.", "Set priorities for action at the scene.", "All of the above."],
+                answer: "All of the above.",
+                explanation: "These are all critical first steps for an officer to take to ensure safety and manage the scene effectively upon arrival.",
+                reference: "Handout Page 2: 22.32 - Procedures for responding..."
+            },
+            {
+                question: "What is a primary responsibility of Fire personnel at a crash scene?",
+                options: ["Conducting the crash investigation.", "Directing traffic.", "Providing HAZMAT response and fire suppression.", "Issuing citations."],
+                answer: "Providing HAZMAT response and fire suppression.",
+                explanation: "The handout lists several roles for different responders. Fire departments are primarily responsible for fire suppression, victim rescue, and managing hazardous materials.",
+                reference: "Handout Page 3: Fire"
+            },
+            {
+                question: "Who is responsible for removing a vehicle and debris from the scene of a crash?",
+                options: ["The law enforcement officer.", "The fire department.", "The vehicle towing/recovery service.", "The driver of the vehicle."],
+                answer: "The vehicle towing/recovery service.",
+                explanation: "Vehicle towing and recovery services are tasked with the physical removal of vehicles and associated debris from the roadway.",
+                reference: "Handout Page 3: Vehicle towing/recovery"
+            },
+            {
+                question: "Under TC 542.501, what is a person required to do in relation to a police officer?",
+                options: ["Argue with the officer if they disagree.", "Comply with any lawful order or direction of a police officer.", "Only obey if they believe the order is reasonable.", "Follow the officer to the station."],
+                answer: "Comply with any lawful order or direction of a police officer.",
+                explanation: "This statute provides officers with the authority to direct traffic and control a scene, and requires citizens to obey those lawful orders.",
+                reference: "Handout Page 4: 22.34 - TC 542.501"
+            },
+            {
+                question: "Which of the following is a recommended interviewing procedure at a crash scene?",
+                options: ["Interview all parties and witnesses together.", "Separate the parties and interview each separately.", "Only interview the drivers.", "Allow drivers to write their own statements without talking to them."],
+                answer: "Separate the parties and interview each separately.",
+                explanation: "Separating the parties is a standard investigative technique to get independent accounts of the incident without the parties influencing each other's statements.",
+                reference: "Handout Page 4: 22.33 - Interviewing procedures"
+            },
+            {
+                question: "Which of the following is a physical appearance factor of a driver that may be relevant to a crash investigation?",
+                options: ["The driver's height.", "The color of their vehicle.", "Odor of an alcoholic beverage.", "Their political affiliation."],
+                answer: "Odor of an alcoholic beverage.",
+                explanation: "The handout lists several relevant factors, including dress, stance, and any odors (like alcohol) that might indicate a contributing factor to the crash, such as intoxication.",
+                reference: "Handout Page 5: Physical appearance factors..."
+            },
+            {
+                question: "What is a nomograph used for in crash investigation?",
+                options: ["To diagram the scene.", "A graph to calculate a corresponding value based on two other values (e.g., speed based on skid marks).", "To record witness statements.", "To measure road width."],
+                answer: "A graph to calculate a corresponding value based on two other values (e.g., speed based on skid marks).",
+                explanation: "A nomograph is a calculation tool that allows an investigator to determine a third value, such as speed, when two other values, like skid distance and coefficient of friction, are known.",
+                reference: "Handout Page 5: Nomograph"
+            },
+            {
+                question: "What is an 'incident' as defined for Traffic Incident Management?",
+                options: ["Any routine traffic stop.", "A pre-planned parade or event.", "Any non-recurring event that causes a reduction of roadway capacity and requires a law enforcement response.", "Normal daily traffic congestion."],
+                answer: "Any non-recurring event that causes a reduction of roadway capacity and requires a law enforcement response.",
+                explanation: "This definition from the Traffic Incident Management Handbook covers unplanned events like crashes, disabled vehicles, or spilled cargo that disrupt normal traffic flow.",
+                reference: "Handout Page 6: 22.38 - Legal Authority"
+            },
+            {
+                question: "According to TC 545.157 (the 'move over' law), what should a driver do when approaching a stationary authorized emergency vehicle with its lights activated?",
+                options: ["Speed up to get past it quickly.", "Maintain their speed and lane position.", "Vacate the lane closest to the emergency vehicle or slow down to a safe speed.", "Honk to acknowledge the vehicle."],
+                answer: "Vacate the lane closest to the emergency vehicle or slow down to a safe speed.",
+                explanation: "This law is designed to protect first responders. Drivers are required to move over one lane if possible, or if not, to slow down to a speed not to exceed 20 mph less than the posted speed limit.",
+                reference: "Handout Page 7: Emergency vehicles"
+            },
+            {
+                question: "What is the primary purpose of positioning a patrol vehicle at a crash scene?",
+                options: ["To block as many lanes as possible.", "To get a good view of the scene.", "To protect the crash scene and prevent further damage or injury.", "To make it easy for the officer to leave quickly."],
+                answer: "To protect the crash scene and prevent further damage or injury.",
+                explanation: "The first priority for vehicle positioning is to create a safe area for victims and responders by using the patrol unit as a barrier against oncoming traffic.",
+                reference: "Handout Page 4: Position patrol vehicle..."
+            },
+            {
+                question: "When directing traffic, what does one long blast of a police whistle typically mean?",
+                options: ["Start", "Stop", "Warning", "Speed up"],
+                answer: "Stop",
+                explanation: "The handout specifies that one long blast is used to get a driver's attention to stop.",
+                reference: "Handout Page 9: Whistle Commands"
+            },
+            {
+                question: "When directing traffic, what do two short blasts of a police whistle typically mean?",
+                options: ["Start", "Stop", "Warning", "Slow down"],
+                answer: "Start",
+                explanation: "The handout specifies that two short blasts are used to get a driver's attention to start moving.",
+                reference: "Handout Page 9: Whistle Commands"
+            },
+            {
+                question: "What are the five areas of a work zone in order from the perspective of an approaching driver?",
+                options: ["Work, Buffer, Transition, Advance Warning, Termination", "Advance Warning, Transition, Buffer, Work, Termination", "Termination, Work, Buffer, Transition, Advance Warning", "Transition, Advance Warning, Work, Buffer, Termination"],
+                answer: "Advance Warning, Transition, Buffer, Work, Termination",
+                explanation: "A proper traffic incident management area is set up in this sequence: Advance Warning to alert drivers, Transition to move traffic over, Buffer to provide a safety space, Work area for responders, and Termination to return traffic to normal.",
+                reference: "Handout Page 10: Five areas of a work zone"
+            },
+            {
+                question: "Which area of a work zone provides protection for victims and responders?",
+                options: ["Advance warning area", "Transition area", "Buffer Area", "Termination area"],
+                answer: "Buffer Area",
+                explanation: "The buffer area is an empty space between the transition area and the work area, designed to provide a margin of safety for responders in case a vehicle intrudes into the scene.",
+                reference: "Handout Page 10: Five areas of a work zone"
+            },
+            // --- NEW QUESTIONS START HERE ---
+            {
+                question: "What is the definition of 'Serious Bodily Injury' under PC 1.07?",
+                options: ["Any physical pain or illness", "Bodily injury that creates a substantial risk of death, permanent disfigurement, or protracted loss of a bodily member", "An injury requiring stitches", "Any injury that causes a person to miss work"],
+                answer: "Bodily injury that creates a substantial risk of death, permanent disfigurement, or protracted loss of a bodily member",
+                explanation: "PC 1.07(46) defines 'Serious Bodily Injury' as injury that creates a substantial risk of death, causes death, serious permanent disfigurement, or protracted loss or impairment of a bodily member.",
+                reference: "Handout Page 6: PC 1.07(46)"
+            },
+            {
+                question: "Under PC 1.07, the definition of 'Individual' includes:",
+                options: ["Only a person born alive", "A human being who is alive, including an unborn child at every stage of gestation", "A corporation or legal entity", "Only a citizen of the United States"],
+                answer: "A human being who is alive, including an unborn child at every stage of gestation",
+                explanation: "PC 1.07(26) explicitly includes an unborn child at every stage of gestation from fertilization until birth in its definition of an 'Individual'.",
+                reference: "Handout Page 6: PC 1.07(26)"
+            },
+            {
+                question: "Which of these is considered a 'Public Place' according to PC 1.07?",
+                options: ["A private backyard", "A gated community with a guard", "A members-only club", "The common area of a hospital or apartment house"],
+                answer: "The common area of a hospital or apartment house",
+                explanation: "PC 1.07(40) defines a 'Public Place' as any place the public or a substantial group has access, including streets, highways, and common areas of schools, hospitals, apartment houses, etc.",
+                reference: "Handout Page 6: PC 1.07(40)"
+            },
+            {
+                question: "What culpable mental state is required for the offense of Manslaughter (PC 19.04)?",
+                options: ["Intentionally", "Knowingly", "Recklessly", "Criminal Negligence"],
+                answer: "Recklessly",
+                explanation: "PC 19.04 (Manslaughter) requires the culpable mental state of 'Recklessly', which is defined as being aware of but consciously disregarding a substantial and unjustifiable risk.",
+                reference: "Handout Page 7: PC 19.04"
+            },
+            {
+                question: "What is the key difference between the mental states for Manslaughter and Criminally Negligent Homicide (CNH)?",
+                options: ["Manslaughter is intentional, CNH is accidental", "Manslaughter (Reckless) means the person was AWARE of the risk; CNH (Criminal Negligence) means the person OUGHT to have been aware", "Manslaughter requires a vehicle, CNH does not", "There is no difference"],
+                answer: "Manslaughter (Reckless) means the person was AWARE of the risk; CNH (Criminal Negligence) means the person OUGHT to have been aware",
+                explanation: "The key distinction is awareness. Manslaughter = aware but disregards the risk. CNH = ought to be aware of the risk.",
+                reference: "Handout Page 8: Manslaughter vs. CNH"
+            },
+            {
+                question: "What is the penalty for Intoxication Assault (PC 49.07)?",
+                options: ["Class A Misdemeanor", "State Jail Felony", "3rd Degree Felony", "2nd Degree Felony"],
+                answer: "3rd Degree Felony",
+                explanation: "PC 49.07, Intoxication Assault (causing SBI by intoxication), is a 3rd Degree Felony.",
+                reference: "Handout Page 9: PC 49.07"
+            },
+            {
+                question: "What is the penalty for Intoxication Manslaughter (PC 49.08)?",
+                options: ["Class A Misdemeanor", "State Jail Felony", "3rd Degree Felony", "2nd Degree Felony"],
+                answer: "2nd Degree Felony",
+                explanation: "PC 49.08, Intoxication Manslaughter (causing death by intoxication), is a 2nd Degree Felony.",
+                reference: "Handout Page 9: PC 49.08"
+            },
+            {
+                question: "Disregarding a warning sign or barricade placed due to *water over the roadway* (TC 472.022) is what class of offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class B Misdemeanor",
+                explanation: "The offense under TC 472.022 is enhanced to a Class B Misdemeanor if the barricade was placed because of water over the roadway.",
+                reference: "Handout Page 10: TC 472.022"
+            },
+            {
+                question: "A motorist fails to stop for a flagger holding a 'Stop/Slow Paddle' in a construction zone. What is the most appropriate offense?",
+                options: ["Disregard Stop Sign", "Disregard Warning Sign", "Speeding", "Reckless Driving"],
+                answer: "Disregard Warning Sign",
+                explanation: "A flagger meets the definition of a 'warning sign' under TC 472.022. 'Disregard Stop Sign' is incorrect as the paddle is not a regulatory stop sign.",
+                reference: "Handout Page 11: Apply It"
+            },
+            {
+                question: "For registration purposes (Chapter 502), what is the definition of a 'Commercial Motor Vehicle'?",
+                options: ["Any vehicle with a GVWR over 26,001 lbs", "A motor vehicle designed or used primarily to transport property", "A vehicle used for a business", "Any vehicle with more than two axles"],
+                answer: "A motor vehicle designed or used primarily to transport property",
+                explanation: "TC 502.001(7) defines a CMV *for registration purposes* as a vehicle designed or used primarily to transport property.",
+                reference: "Handout Page 11: TC 502.001(7)"
+            },
+            {
+                question: "For *driver license* purposes (Chapter 521), how is an Autocycle treated?",
+                options: ["Like a motorcycle (Class M required)", "Like a car (Class C is sufficient)", "Like a moped (no license required)", "It cannot be driven on a highway"],
+                answer: "Like a car (Class C is sufficient)",
+                explanation: "TC 521.085 states that for driver license purposes, autocycles are treated like cars, and a Class M license is *not* required.",
+                reference: "Handout Page 12: TC 502.005"
+            },
+            {
+                question: "For *registration* purposes (Chapter 502), how is an Autocycle treated?",
+                options: ["Like a motorcycle (one plate, insignia on plate)", "Like a car (two plates, insignia on windshield)", "It cannot be registered", "Like a trailer"],
+                answer: "Like a motorcycle (one plate, insignia on plate)",
+                explanation: "TC 502.005 states that for registration purposes, autocycles are treated like motorcycles (one plate is issued, and the insignia is displayed on the plate).",
+                reference: "Handout Page 12: TC 502.005"
+            },
+            {
+                question: "How many days does a new Texas resident have to register their motor vehicle under TC 502.040?",
+                options: ["10 days", "30 days", "60 days", "90 days"],
+                answer: "30 days",
+                explanation: "TC 502.040 requires a person to register a motor vehicle within 30 days of becoming a resident of Texas.",
+                reference: "Handout Page 13: TC 502.040"
+            },
+            {
+                question: "Where must the registration insignia be displayed on a motorcycle?",
+                options: ["On the front fender", "On the gas tank", "On the rear license plate", "On the operator's helmet"],
+                answer: "On the rear license plate",
+                explanation: "TC 502.059 requires motorcycles, trailers, and vehicles without windshields to display the registration insignia on the rear license plate.",
+                reference: "Handout Page 14: TC 502.059"
+            },
+            {
+                question: "Is a vehicle inspection required *before* operating on a 72-Hour or 144-Hour Permit (TC 502.094)?",
+                options: ["Yes", "No", "Only if the vehicle is over 10,000 lbs", "Only if the vehicle is from out-of-state"],
+                answer: "Yes",
+                explanation: "TC 502.094(e) requires the vehicle to receive a state inspection *prior* to operating on a highway with a 72 or 144-hour permit.",
+                reference: "Handout Page 14: TC 502.094(e)"
+            },
+            {
+                question: "A One-Trip Permit (TC 502.095) is valid for a maximum of how many days?",
+                options: ["5 days", "10 days", "15 days", "30 days"],
+                answer: "15 days",
+                explanation: "TC 502.095(c) states a One-Trip Permit may not be valid for more than 15 days.",
+                reference: "Handout Page 15: TC 502.095(c)"
+            },
+            {
+                question: "Which of the following vehicles is required to have a state inspection to operate on a temporary permit?",
+                options: ["A vehicle with a One-Trip Permit", "A vehicle with a 30-Day Permit", "Both are required", "Neither are required"],
+                answer: "A vehicle with a 30-Day Permit",
+                explanation: "A vehicle on a 30-Day Permit is required to be inspected (TC 502.095(d)). A vehicle on a One-Trip Permit is *not* required to be inspected (TC 548.052).",
+                reference: "Handout Page 15: TC 502.095"
+            },
+            {
+                question: "Which of these vehicles *cannot* be registered by an individual in Texas?",
+                options: ["An autocycle", "A farm truck", "A power sweeper", "A classic car"],
+                answer: "A power sweeper",
+                explanation: "TC 502.143 states that power sweepers, motorized mobility devices, and Segways may not be registered.",
+                reference: "Handout Page 16: TC 502.143"
+            },
+            {
+                question: "Under TC 502.144, an individual may operate an unregistered truck to cross a public highway if:",
+                options: ["They are going to their favorite gas station", "They own property on both sides of the highway", "The crossing is done at night", "The truck has farm plates"],
+                answer: "They own property on both sides of the highway",
+                explanation: "This section provides a narrow exception for a property owner to operate an unregistered vehicle *only* to cross a highway separating their real property.",
+                reference: "Handout Page 17: TC 502.144"
+            },
+            {
+                question: "A farm trailer with a gross weight of 3,800 pounds requires what for highway use?",
+                options: ["Full trailer registration", "A Farm Trailer license plate", "No license plate or registration required", "A 30-Day Permit"],
+                answer: "No license plate or registration required",
+                explanation: "Under TC 502.146, farm trailers with a gross weight of 4,000 pounds or less do not require a license plate or registration.",
+                reference: "Handout Page 18: Table 7-1"
+            },
+            {
+                question: "A farm trailer with a gross weight of 30,000 pounds requires what for highway use?",
+                options: ["Full trailer registration", "A Farm Trailer license plate", "No license plate or registration required", "A Machinery license plate"],
+                answer: "A Farm Trailer license plate",
+                explanation: "Under TC 502.146, farm trailers with a gross weight over 4,000 lbs but not more than 34,000 lbs require a Farm Trailer license plate (but not full registration).",
+                reference: "Handout Page 18: Table 7-1"
+            },
+            {
+                question: "An expired registration insignia (TC 502.407) becomes a citable offense:",
+                options: ["Immediately on the 1st day of the next month", "After a 24-hour grace period", "After the 5th business day of the expiration month", "AFTER the 5th business day following the expiration"],
+                answer: "AFTER the 5th business day following the expiration",
+                explanation: "TC 502.407 provides a grace period. The offense does not occur until *after* the 5th business day after the registration expires.",
+                reference: "Handout Page 20: TC 502.407"
+            },
+            {
+                question: "Which activity is a *prohibited* use for a vehicle displaying 'Farm Truck' license plates?",
+                options: ["Attending church or school", "Visiting a doctor", "Operating a side-job mowing yards for gainful employment", "Participating in equine activities"],
+                answer: "Operating a side-job mowing yards for gainful employment",
+                explanation: "TC 502.433 and 502.478 restrict Farm Truck plates from being used for gainful employment outside of farming or ranching. Attending church, visiting a doctor, and equine activities are specifically allowed.",
+                reference: "Handout Page 21: TC 502.433"
+            },
+            {
+                question: "A vehicle is currently registered, but the driver has failed to affix the registration insignia to the windshield. What is the offense?",
+                options: ["TC 502.472 - Operation of Vehicle Under Improper Registration", "TC 502.473 - Operation of Vehicle Without Registration Insignia", "TC 502.475 - Wrong, Fictitious, Altered or Obscured Insignia", "No offense, as long as it's in the glove box"],
+                answer: "TC 502.473 - Operation of Vehicle Without Registration Insignia",
+                explanation: "TC 502.473 is the specific offense for failing to *display* the insignia on a vehicle that *is* currently registered.",
+                reference: "Handout Page 22: TC 502.473"
+            },
+            {
+                question: "Displaying a registration insignia that is assigned to a *different* motor vehicle is what class of offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class C Misdemeanor",
+                explanation: "TC 502.475(1) specifies this is a Class C Misdemeanor.",
+                reference: "Handout Page 23: TC 502.475"
+            },
+            {
+                question: "Displaying a *fictitious* registration insignia is what class of offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class B Misdemeanor",
+                explanation: "TC 502.475(4) specifies that displaying a fictitious insignia is a Class B Misdemeanor.",
+                reference: "Handout Page 23: TC 502.475"
+            },
+            {
+                question: "Knowingly altering a registration insignia with a marker to change the date is what class of offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "3rd Degree Felony"],
+                answer: "Class B Misdemeanor",
+                explanation: "This falls under knowingly making the insignia illegible or altering it, which is a Class B Misdemeanor under TC 502.475.",
+                reference: "Handout Page 23: TC 502.475"
+            },
+            {
+                question: "A person who *manufactures or sells* a deceptively similar registration insignia (TC 502.4755) commits what offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "3rd Degree Felony"],
+                answer: "3rd Degree Felony",
+                explanation: "While possessing one is a misdemeanor, manufacturing or selling deceptively similar insignias is a 3rd Degree Felony.",
+                reference: "Handout Page 24: TC 502.4755"
+            },
+            {
+                question: "A person who purchases a vehicle from a private owner can obtain a temporary transit permit (TC 502.492) valid for how long?",
+                options: ["24 hours", "3 days", "5 days", "30 days"],
+                answer: "5 days",
+                explanation: "TC 502.492 allows a new owner to get a temporary transit permit valid for 5 days.",
+                reference: "Handout Page 24: TC 502.492"
+            },
+            {
+                question: "Can a metal *Dealer's License Plate* (TC 503.061) be used for a dealer's personal vacation road trip?",
+                options: ["Yes, personal use is permitted", "No, it must be for demonstration only", "No, it cannot be used on a commercial vehicle", "Yes, but only for 60 days"],
+                answer: "Yes, personal use is permitted",
+                explanation: "The handout specifies that metal dealer plates may be used for demonstrations or for *personal use*, as long as other restrictions (like not carrying a load) are met.",
+                reference: "Handout Page 25: TC 503.061"
+            },
+            {
+                question: "Is a vehicle displaying a metal *Dealer's License Plate* (TC 503.061) required to have a valid state inspection?",
+                options: ["Yes, it must have a valid inspection", "No, it is exempt from inspection", "Only if it's being used for personal use", "Only if it's a commercial vehicle"],
+                answer: "Yes, it must have a valid inspection",
+                explanation: "DMV Administrative Code rule 215.138 requires a vehicle displaying a metal dealer's plate to have a valid safety inspection.",
+                reference: "Handout Page 25: TC 503.061"
+            },
+            {
+                question: "Can a *Dealer's Temporary Tag* (TC 503.062) be used for a dealer's personal vacation road trip?",
+                options: ["Yes, personal use is permitted", "No, personal use is not an authorized use", "Yes, but only for demonstration", "No, it is only for loaner vehicles"],
+                answer: "No, personal use is not an authorized use",
+                explanation: "Dealer temporary tags have very limited uses (demonstration, transit, loaner, etc.). TC 503.068(a) specifically states they may *not* be used for personal use.",
+                reference: "Handout Page 26: TC 503.062"
+            },
+            {
+                question: "Is a vehicle displaying a *Dealer's Temporary Tag* (TC 503.062) required to have a valid state inspection?",
+                options: ["Yes, it must have a valid inspection", "No, a state inspection is not required", "Only if it's being used as a loaner", "Only if it's a commercial vehicle"],
+                answer: "No, a state inspection is not required",
+                explanation: "The handout explicitly states that a state inspection is *not* required for vehicles displaying dealer temporary tags.",
+                reference: "Handout Page 26: TC 503.062"
+            },
+            {
+                question: "What is the maximum validity period for a *Buyer's Temporary Tag* (TC 503.063)?",
+                options: ["15 days", "30 days", "60 days", "90 days"],
+                answer: "60 days",
+                explanation: "TC 503.063 states only one buyer's tag can be issued for a period of time no longer than 60 days.",
+                reference: "Handout Page 27: TC 503.063"
+            },
+            {
+                question: "A person *operates* a vehicle displaying an unauthorized (e.g., purchased on Facebook) temporary tag. What is the offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class C Misdemeanor",
+                explanation: "Under TC 503.094(b), operating a vehicle with an unauthorized tag is a Class C Misdemeanor.",
+                reference: "Handout Page 28: TC 503.094(b)"
+            },
+            {
+                question: "A person *sells* an unauthorized temporary tag. What is the offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class A Misdemeanor",
+                explanation: "Under TC 503.094(d), selling or distributing an unauthorized tag is a Class A Misdemeanor.",
+                reference: "Handout Page 28: TC 503.094(d)"
+            },
+            {
+                question: "Which of the following is a *prohibited* use for a vehicle with 'Antique Auto' license plates (TC 504.502)?",
+                options: ["Driving in a parade", "Going to a car club event", "Driving to a mechanic for maintenance", "Driving to the grocery store for milk"],
+                answer: "Driving to the grocery store for milk",
+                explanation: "Antique vehicles are explicitly *not* for regular transportation. Driving for maintenance is a defense, but running errands is a violation.",
+                reference: "Handout Page 30: TC 504.502"
+            },
+            {
+                question: "Is a vehicle with 'Antique Auto' license plates (TC 504.502) required to have an annual inspection?",
+                options: ["Yes", "No", "Only if driven at night", "Only if it's a truck"],
+                answer: "No",
+                explanation: "TC 548.052 exempts vehicles with Antique license plates from the annual inspection requirement.",
+                reference: "Handout Page 30: TC 548.052"
+            },
+            {
+                question: "What is the minimum height from the ground for a license plate on a passenger car (TC 504.943)?",
+                options: ["6 inches", "12 inches", "18 inches", "24 inches"],
+                answer: "12 inches",
+                explanation: "TC 504.943 and DMV admin rules require the plate to be not less than 12 inches from the ground, measuring from the bottom of the plate.",
+                reference: "Handout Page 31: TC 504.943"
+            },
+            {
+                question: "A trailer's license plate is mounted vertically on the fender, but is legible and over 12 inches high. Is this a violation?",
+                options: ["Yes, it must be horizontal", "Yes, it must be at the exterior rear", "No, this is not a violation", "No, trailers don't need plates"],
+                answer: "No, this is not a violation",
+                explanation: "For a trailer (one plate vehicle), the plate must be 'as close as practical' to the rear and >12\" high. There is no requirement for it to be horizontal.",
+                reference: "Handout Page 31: TC 504.943"
+            },
+            {
+                question: "Displaying a *fictitious* license plate (TC 504.945) is what class of offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class B Misdemeanor",
+                explanation: "TC 504.945(a)(4) makes displaying a fictitious license plate a Class B Misdemeanor.",
+                reference: "Handout Page 34: TC 504.945"
+            },
+            {
+                question: "A license plate bracket *covers* the state name 'TEXAS' at the top of the plate. What is the most appropriate offense?",
+                options: ["No offense", "Improperly Placed License Plate (504.943)", "Display Unauthorized Coating or Covering (504.945(a)(7))", "Display Fictitious License Plate (504.945(a)(4))"],
+                answer: "Display Unauthorized Coating or Covering (504.945(a)(7))",
+                explanation: "TC 504.945(a)(7) prohibits a covering (including a bracket) that alters or obscures one-half or more of the name of the state. This is the most specific offense.",
+                reference: "Handout Page 34: TC 504.945(a)(7)"
+            },
+            {
+                question: "Which of the following items is *NOT* an exception and *IS* a violation if it obstructs a license plate?",
+                options: ["A trailer hitch", "A bicycle rack", "A wheelchair carrier", "A tinted license plate cover"],
+                answer: "A tinted license plate cover",
+                explanation: "TC 504.945(c) specifically lists trailer hitches, bicycle racks, and wheelchair carriers as exceptions. A tinted cover is a violation under 504.945(a)(7).",
+                reference: "Handout Page 35: TC 504.945(c)"
+            },
+            {
+                question: "A person who *sells or distributes* a license plate flipper (TC 504.9465) commits what offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class A Misdemeanor",
+                explanation: "Selling or distributing a license plate flipper is a Class A Misdemeanor. Possessing one is a Class B.",
+                reference: "Handout Page 38: TC 504.9465"
+            },
+            {
+                question: "A person is operating a Segway (EPAMD) on a highway without a driver's license. Is this a violation of TC 521.021 (License Required)?",
+                options: ["Yes, a Class C license is required", "Yes, a Class M license is required", "No, an EPAMD is not considered a 'motor vehicle' for licensing", "No, but they must be 18 or older"],
+                answer: "No, an EPAMD is not considered a 'motor vehicle' for licensing",
+                explanation: "TC 521.021 only applies to a 'motor vehicle'. The definition of 'motor vehicle' in TC 541.201 specifically *excludes* an electric personal assistive mobility device (Segway).",
+                reference: "Handout Page 42: TC 521.021"
+            },
+            {
+                question: "A 15-year-old is operating a farm combine on a public highway without a driver's license. Is this a violation?",
+                options: ["Yes, they must have a hardship license", "No, a person operating a farm tractor or implement of husbandry is exempt", "Yes, they must be at least 16", "No, but they must be with a licensed adult"],
+                answer: "No, a person operating a farm tractor or implement of husbandry is exempt",
+                explanation: "TC 521.027(2) explicitly exempts a person operating a farm tractor or implement of husbandry (like a combine) from the driver license requirement.",
+                reference: "Handout Page 42-43: TC 521.027(2)"
+            },
+            {
+                question: "Under TC 521.025, what is the penalty for a 3rd or subsequent conviction of Fail to Display Driver License within one year?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "No penalty, it's dismissible"],
+                answer: "Class B Misdemeanor",
+                explanation: "The penalty for Fail to Display Driver License (TC 521.025) is enhanced to a Class B Misdemeanor for a 3rd or subsequent offense within one year.",
+                reference: "Handout Page 43: TC 521.025"
+            },
+            {
+                question: "A new resident to Texas, who is 18 and holds a valid license from their old state, has how long to obtain a Texas driver's license?",
+                options: ["30 days", "60 days", "90 days", "6 months"],
+                answer: "90 days",
+                explanation: "Under TC 521.029, a new resident with a valid out-of-state license has 90 days to obtain a Texas license. (This is different from the 30-day requirement for vehicle registration).",
+                reference: "Handout Page 44: TC 521.029"
+            },
+            {
+                question: "A person has a change of address. How long do they have to notify the Department and update their driver's license (TC 521.054)?",
+                options: ["10 days", "30 days", "60 days", "90 days"],
+                answer: "30 days",
+                explanation: "TC 521.054 requires a person to notify the Department of a name or address change within 30 days.",
+                reference: "Handout Page 44: TC 521.054"
+            },
+            {
+                question: "What is the minimum age to obtain a *learner license* (Instruction Permit) in Texas?",
+                options: ["14", "15", "16", "17"],
+                answer: "15",
+                explanation: "TC 521.222(a)(1) states a learner license is only issued to a person who is 15, 16, or 17 years of age.",
+                reference: "Handout Page 51: TC 521.222"
+            },
+            {
+                question: "A person with a learner license (TC 521.222) must be accompanied by a licensed operator who is at least 21 years old and has...?",
+                options: ["A commercial driver's license", "A clean driving record", "At least 1 year of driving experience", "Parental or guardian status"],
+                answer: "At least 1 year of driving experience",
+                explanation: "TC 521.222(d) requires the accompanying licensed operator (21+) to have at least one year of driving experience.",
+                reference: "Handout Page 51: TC 521.222(d)"
+            },
+            {
+                question: "What is the minimum age a person can obtain a *hardship license* in Texas?",
+                options: ["14", "15", "16", "There is no age minimum"],
+                answer: "15",
+                explanation: "TC 521.223 specifies that applicants for a hardship license must be at least 15 years old.",
+                reference: "Handout Page 51: TC 521.223"
+            },
+            {
+                question: "A restricted Class M license (TC 521.224) issued to a 15-year-old allows operation of a motorcycle with a displacement of...?",
+                options: ["150 ccs or less", "250 ccs or less", "500 ccs or less", "Any size, but only during the day"],
+                answer: "250 ccs or less",
+                explanation: "A restricted Class M license for a minor only allows operation of a motorcycle with a displacement of 250 cubic centimeters or less.",
+                reference: "Handout Page 51: TC 521.224"
+            },
+            {
+                question: "Under TC 521.241, what is an 'essential need' for an occupational license?",
+                options: ["Driving to restaurants and social events", "Transportation to an educational facility in which the person is enrolled", "Driving friends to the airport", "Any driving desired by the person"],
+                answer: "Transportation to an educational facility in which the person is enrolled",
+                explanation: "Essential need is strictly defined as for an occupation/trade, to/from school, or for essential household duties.",
+                reference: "Handout Page 52: TC 521.241"
+            },
+            {
+                question: "A court order granting an occupational license (TC 521.248) serves as the temporary license for how long?",
+                options: ["10 days", "30 days", "45 days", "90 days"],
+                answer: "45 days",
+                explanation: "TC 521.248(d) states the court order serves as the occupational license for 45 days, during which time the driver must complete the process with DPS.",
+                reference: "Handout Page 53: TC 521.248(d)"
+            },
+            {
+                question: "A person driving on an occupational license violates a time restriction specified in the court order. What is the offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "No offense, just a warning"],
+                answer: "Class B Misdemeanor",
+                explanation: "TC 521.253 makes it a Class B Misdemeanor to violate a restriction on an occupational license OR to fail to have the court order in possession.",
+                reference: "Handout Page 53: TC 521.253"
+            },
+            {
+                question: "A person driving on an occupational license is stopped and does *not* have the certified copy of the court order. What is the offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "No offense, if the license is valid"],
+                answer: "Class B Misdemeanor",
+                explanation: "TC 521.253 makes it a Class B Misdemeanor to fail to have the court order in possession while driving on an occupational license.",
+                reference: "Handout Page 53: TC 521.250 & 521.253"
+            },
+            {
+                question: "A 'habitual violator' (TC 521.292) is a person who has how many convictions?",
+                options: ["2 in 12 months or 4 in 24 months", "4 in 12 months or 7 in 24 months", "5 in 12 months or 10 in 24 months", "Any 3 moving violations"],
+                answer: "4 in 12 months or 7 in 24 months",
+                explanation: "TC 521.292(3) defines a habitual violator as someone with 4 or more convictions in 12 months, or 7 or more convictions in 24 months.",
+                reference: "Handout Page 55: TC 521.292(3)"
+            },
+            {
+                question: "A conviction for Racing on a Public Highway (TC 545.420) results in an automatic license suspension of...?",
+                options: ["30 days", "90 days", "6 months", "One year"],
+                answer: "One year",
+                explanation: "TC 521.350 mandates a one-year license suspension upon conviction for Racing.",
+                reference: "Handout Page 56: TC 521.350"
+            },
+            {
+                question: "Displaying or possessing a *fictitious or altered* Texas Driver's License (TC 521.451) is what class of offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class A Misdemeanor",
+                explanation: "TC 521.451(1) makes it a Class A Misdemeanor to display or possess a fictitious or altered DL or ID card.",
+                reference: "Handout Page 56: TC 521.451"
+            },
+            {
+                question: "A 19-year-old possesses a 'novelty' out-of-state ID with the intent to misrepresent their age to buy beer. What is the most likely offense?",
+                options: ["Class A Misdemeanor (Fictitious DL)", "Class C Misdemeanor (Deceptively Similar DL/ID Under 21)", "No violation if not presented to an officer", "Forgery (State Jail Felony)"],
+                answer: "Class C Misdemeanor (Deceptively Similar DL/ID Under 21)",
+                explanation: "TC 521.453 is a specific Class C Misdemeanor for a person under 21 to possess a deceptively similar document *with the intent to misrepresent their age*.",
+                reference: "Handout Page 56: TC 521.453"
+            },
+            {
+                question: "A person is stopped for Driving While License Invalid (DWLI). The officer sees their license was previously suspended for a DWI. What is the *new* DWLI offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class B Misdemeanor",
+                explanation: "A DWLI offense is enhanced to a Class B Misdemeanor if the person has a previous DWLI conviction OR if their license was previously suspended for an offense relating to DWI.",
+                reference: "Handout Page 57: TC 521.457"
+            },
+            {
+                question: "A person is stopped for DWLI. They have no previous DWLI convictions or alcohol suspensions, but they also do not have insurance. What is the offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Two Class C Misdemeanors", "No offense, the insurance is a separate issue"],
+                answer: "Class B Misdemeanor",
+                explanation: "A DWLI offense is enhanced to a Class B Misdemeanor if the person is operating without proof of financial responsibility (insurance).",
+                reference: "Handout Page 57: TC 521.457"
+            },
+            {
+                question: "A person commits DWLI, does *not* have insurance, AND causes a crash resulting in *Serious Bodily Injury*. What is the offense?",
+                options: ["Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony", "3rd Degree Felony"],
+                answer: "Class A Misdemeanor",
+                explanation: "TC 521.457 enhances DWLI to a Class A Misdemeanor if the person is uninsured AND causes a crash resulting in SBI or death.",
+                reference: "Handout Page 57: TC 521.457"
+            },
+            {
+                question: "For the purposes of a CDL (Chapter 522), what is a 'Commercial Motor Vehicle' (Group A)?",
+                options: ["Any vehicle transporting property", "A combination vehicle with GCWR of 26,001+ lbs, *inclusive of* a towed unit over 10,000 lbs", "A single vehicle with GVWR of 26,001+ lbs", "Any vehicle with 16 or more passengers"],
+                answer: "A combination vehicle with GCWR of 26,001+ lbs, *inclusive of* a towed unit over 10,000 lbs",
+                explanation: "This is the definition for a Group A commercial motor vehicle under 49 C.F.R. Section 383.5, which is adopted by TC 522.003.",
+                reference: "Handout Page 60: TC 522.003(5)"
+            },
+            {
+                question: "For the purposes of a CDL (Chapter 522), what is a 'Commercial Motor Vehicle' (Group B)?",
+                options: ["Any vehicle transporting property", "A combination vehicle with GCWR of 26,001+ lbs", "A single vehicle with GVWR of 26,001+ lbs or more", "Any vehicle with 16 or more passengers"],
+                answer: "A single vehicle with GVWR of 26,001+ lbs or more",
+                explanation: "This is the definition for a Group B (Heavy Straight Vehicle) commercial motor vehicle.",
+                reference: "Handout Page 60: TC 522.003(5)"
+            },
+            {
+                question: "For the purposes of a CDL (Chapter 522), what is a 'Commercial Motor Vehicle' (Group C)?",
+                options: ["A vehicle transporting property for hire", "A vehicle that does not meet Group A or B, but transports 16+ passengers or HazMat", "Any vehicle with a GVWR of 10,001+ lbs", "Any vehicle with air brakes"],
+                answer: "A vehicle that does not meet Group A or B, but transports 16+ passengers or HazMat",
+                explanation: "This is the definition for a Group C (Small Vehicle) commercial motor vehicle.",
+                reference: "Handout Page 60: TC 522.003(5)"
+            },
+            {
+                question: "Which of the following persons is *EXEMPT* from CDL requirements under TC 522.004?",
+                options: ["A person driving a fire truck", "A person driving an RV for personal use", "A person operating a 'covered farm vehicle'", "All of the above"],
+                answer: "All of the above",
+                explanation: "TC 522.004 provides exemptions for operators of fire/emergency vehicles, military vehicles, RVs (personal use), and covered farm vehicles, among others.",
+                reference: "Handout Page 61: TC 522.004"
+            },
+            {
+                question: "A person is driving a large RV (GVWR 30,000 lbs) towing a trailer (GVWR 15,000 lbs) for a family vacation. What license is required?",
+                options: ["Class C Non-CDL", "Class B Non-CDL", "Class A Non-CDL", "Class A CDL"],
+                answer: "Class A Non-CDL",
+                explanation: "The vehicle meets the *weight* requirements for a Class A CDL. However, TC 522.004 exempts RVs used for personal use from *CDL* requirements. The driver *still* needs the proper *class* of license, which is a Class A Non-CDL per TC 521.081.",
+                reference: "Handout Page 61-62: TC 522.004, TC 521.081"
+            },
+            {
+                question: "A firefighter is driving a fire truck with a GVWR of 60,000 lbs. They have a Non-CDL Class B license. Is this a violation?",
+                options: ["Yes, they need a Class A CDL", "Yes, they need a Class B CDL", "No, they are exempt from CDL and have the correct Non-CDL class", "No, they only need a Class C license"],
+                answer: "No, they are exempt from CDL and have the correct Non-CDL class",
+                explanation: "Fire trucks are exempt from CDL requirements (TC 522.004). However, the driver must still have the proper *class* of license. A single vehicle with GVWR > 26,001 lbs requires a Class B license (TC 521.082).",
+                reference: "Handout Page 61-62: TC 522.004, TC 521.082"
+            },
+            {
+                question: "A CDL holder is driving a *commercial motor vehicle* with a *measurable or detectable* amount of alcohol in their system. What happens?",
+                options: ["They are arrested for DWI", "They are placed out-of-service for 24 hours", "They are given a warning", "Nothing, if they are under 0.08 BAC"],
+                answer: "They are placed out-of-service for 24 hours",
+                explanation: "TC 522.101 prohibits a person from driving a *commercial motor vehicle* with *any* detectable alcohol. The penalty is being placed out-of-service for 24 hours.",
+                reference: "Handout Page 67: TC 522.101"
+            },
+            {
+                question: "A CDL holder is driving their *personal vehicle* with a 0.03 BAC. What is the penalty under TC 522.101?",
+                options: ["They are placed out-of-service for 24 hours", "They are arrested for DWI", "They are given a warning", "Nothing, TC 522.101 does not apply"],
+                answer: "Nothing, TC 522.101 does not apply",
+                explanation: "TC 522.101 (any detectable alcohol) specifically applies *only* when the person is driving a *commercial motor vehicle*.",
+                reference: "Handout Page 67: TC 522.101"
+            },
+            // --- NEW BATCH 3 QUESTIONS START HERE ---
+            {
+                question: "A person 'steering' a vehicle being towed with a tow chain is the operator of that vehicle.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 541.001(1-a) defines an 'operator' as a person who drives or has *physical control* of a vehicle. A person steering a towed vehicle is in physical control.",
+                reference: "Handout Page 93, Q1; TC 541.001(1-a)"
+            },
+            {
+                question: "Which of these is *NOT* an Authorized Emergency Vehicle (AEV)?",
+                options: ["A police vehicle on routine patrol", "A tissue bank vehicle making an emergency delivery", "A private vehicle of a volunteer firefighter *returning* from a fire", "A public ambulance parked at a hospital"],
+                answer: "A private vehicle of a volunteer firefighter *returning* from a fire",
+                explanation: "TC 541.201(1)(G) specifies a volunteer firefighter's private vehicle is only an AEV *when responding* to a fire alarm or medical emergency.",
+                reference: "Handout Page 93, Q2; TC 541.201(1)"
+            },
+            {
+                question: "A 'bus' is a motor vehicle designed to transport how many people?",
+                options: ["More than 10 passengers, including the operator", "More than 15 passengers", "10 or fewer passengers", "Exactly 24 passengers"],
+                answer: "More than 10 passengers, including the operator",
+                explanation: "TC 541.201(3) defines a 'bus' as a motor vehicle designed to accommodate *more than 10* passengers, including the operator OR a vehicle used to transport persons for compensation.",
+                reference: "Handout Page 94, Q4; TC 541.201(3)"
+            },
+            {
+                question: "A 'light truck' has a manufacturer's rated carrying capacity of...?",
+                options: ["2,000 pounds or less", "4,000 pounds or less", "1,000 pounds or less", "5,000 pounds or less"],
+                answer: "2,000 pounds or less",
+                explanation: "TC 541.201(7) defines a 'light truck' as having a manufacturer's rated carrying capacity of 2,000 pounds or less.",
+                reference: "Handout Page 94, Q6; TC 541.201(7)"
+            },
+            {
+                question: "What are the two distinct features of a 'motorcycle'?",
+                options: ["A rider's saddle and not more than three wheels", "Two wheels and an engine over 50cc", "A straddle seat and handlebars", "A rider's saddle and at least two wheels"],
+                answer: "A rider's saddle and not more than three wheels",
+                explanation: "TC 541.201(9) defines a motorcycle as a motor vehicle equipped with a rider's saddle and designed to have *not more than three* wheels on the ground.",
+                reference: "Handout Page 94, Q8; TC 541.201(9)"
+            },
+            {
+                question: "A vehicle designed to be drawn by a motor vehicle where *no part* of its weight rests on the towing vehicle is a:",
+                options: ["Trailer", "Semitrailer", "Pole trailer", "House Trailer"],
+                answer: "Trailer",
+                explanation: "TC 541.201(20) defines a 'trailer' as being constructed so that *no part* of its weight and load rests on the motor vehicle. A 'semitrailer' (17) is constructed so *part* of its weight rests on the towing vehicle.",
+                reference: "Handout Page 94, Q9; TC 541.201(20)"
+            },
+            {
+                question: "A vehicle, other than a car or truck, designed and adapted for use as a farm implement, machinery, or tool for tilling the soil is a(n):",
+                options: ["Farm Tractor", "Implement of Husbandry", "Road Tractor", "Special Mobile Equipment"],
+                answer: "Implement of Husbandry",
+                explanation: "This is part of the definition of 'Implement of Husbandry' from TC 541.201(6).",
+                reference: "Handout Page 94, Q10; TC 541.201(6)"
+            },
+            {
+                question: "The junction of a private drive with a public highway constitutes an 'intersection'.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 541.303(b) explicitly states that the junction of a highway with an alley or private drive is *not* an intersection.",
+                reference: "Handout Page 94, Q12; TC 541.303(b)"
+            },
+            {
+                question: "For a traffic control device to be 'Official', it must be placed by:",
+                options: ["A police officer", "A TXDOT employee", "A public body or officer having jurisdiction", "The owner of a parking lot"],
+                answer: "A public body or officer having jurisdiction",
+                explanation: "TC 541.304(1) requires an 'Official Traffic-Control Device' to be placed or erected by a public body or officer having jurisdiction.",
+                reference: "Handout Page 94, Q13; TC 541.304(1)"
+            },
+            {
+                question: "What is the 'Roadway'?",
+                options: ["The entire right-of-way, from fence line to fence line", "The paved portion of the highway, including the shoulder", "The portion of a highway, *other than* the berm or shoulder, used for travel", "Only the marked lanes"],
+                answer: "The portion of a highway, *other than* the berm or shoulder, used for travel",
+                explanation: "TC 541.302(11) defines the 'Roadway' as the part of the highway *ordinarily used for vehicular travel*, but it specifically excludes the shoulder or berm.",
+                reference: "Handout Page 95, Q14; TC 541.302(11)"
+            },
+            {
+                question: "What is the 'Shoulder'?",
+                options: ["The unpaved part of the highway", "The portion of a highway adjacent to the roadway, designed or used for parking", "The median between opposing lanes", "Another name for the 'Roadway'"],
+                answer: "The portion of a highway adjacent to the roadway, designed or used for parking",
+                explanation: "TC 541.302(15) defines the 'Shoulder' as the portion of the highway adjacent to the roadway, distinguished by different design, and not intended for normal travel.",
+                reference: "Handout Page 95, Q15; TC 541.302(15)"
+            },
+            {
+                question: "What is the 'Highway'?",
+                options: ["The paved lanes of travel", "The area between the shoulders", "The entire width between the boundary lines (e.g., fence lines)", "Only the roadway and shoulders"],
+                answer: "The entire width between the boundary lines (e.g., fence lines)",
+                explanation: "TC 541.302(5) defines the 'Highway' as the *entire width* between the boundary lines of a publicly maintained way. This includes the roadway, shoulders, and ditches.",
+                reference: "Handout Page 95, Q16; TC 541.302(5)"
+            },
+            {
+                question: "When does 'Daytime' end?",
+                options: ["At sunset", "1/2 hour *before* sunset", "1/2 hour *after* sunset", "When streetlights turn on"],
+                answer: "1/2 hour *after* sunset",
+                explanation: "TC 541.401(1) defines 'Daytime' as the period from 1/2 hour *before* sunrise to 1/2 hour *after* sunset.",
+                reference: "Handout Page 95, Q17; TC 541.401(1)"
+            },
+            {
+                question: "When does 'Nighttime' end?",
+                options: ["At sunrise", "1/2 hour *before* sunrise", "1/2 hour *after* sunrise", "At 6:00 AM"],
+                answer: "1/2 hour *before* sunrise",
+                explanation: "TC 541.401(5) defines 'Nighttime' as the period from 1/2 hour *after* sunset to 1/2 hour *before* sunrise.",
+                reference: "Handout Page 95, Q18; TC 541.401(5)"
+            },
+            {
+                question: "A vehicle is *not* considered to be 'standing' if it halts temporarily to load or unload passengers.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 541.401(9) provides an exception to the definition of 'Stand' for the temporary receiving or discharging of passengers.",
+                reference: "Handout Page 95, Q19; TC 541.401(9)"
+            },
+            {
+                question: "Subtitle C (Rules of the Road) applies only to the operation of a vehicle on a highway, unless the provision says otherwise.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "This is the general rule of applicability found in TC 542.001. This is why most traffic laws (like speeding, stop signs) don't apply in private parking lots.",
+                reference: "Handout Page 96, Q21; TC 542.001"
+            },
+            {
+                question: "Unless otherwise specified, the level of offense for a violation of Subtitle C is a:",
+                options: ["Misdemeanor (fine $1-$200)", "Class C Misdemeanor", "Class B Misdemeanor", "Civil infraction"],
+                answer: "Misdemeanor (fine $1-$200)",
+                explanation: "TC 542.301 and 542.401 establish that a violation is a misdemeanor, and the general penalty is a fine of $1 to $200.",
+                reference: "Handout Page 96, Q22 & 23; TC 542.301, 542.401"
+            },
+            {
+                question: "A person commits an offense if they willfully fail or refuse to comply with a lawful order of a police officer, school crossing guard, or escort flagger.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 542.501 specifically requires obedience to all three.",
+                reference: "Handout Page 96, Q24; TC 542.501"
+            },
+            {
+                question: "Which of these offenses requires an officer to issue a notice to appear (cite and release), assuming the violator signs?",
+                options: ["Reckless Driving", "Driving While License Invalid", "Speeding", "All of the above"],
+                answer: "Speeding",
+                explanation: "TC 543.004 lists Speeding, Use of Wireless Communication Device, and Open Container as the only three mandatory cite-and-release offenses.",
+                reference: "Handout Page 96, Q26; TC 543.004"
+            },
+            {
+                question: "A citation (notice to appear) must list a court date *at least* how many days after the violation?",
+                options: ["5 days", "7 days", "10 days", "14 days"],
+                answer: "10 days",
+                explanation: "TC 543.006 requires the officer to give the violator at least 10 days to contact the court.",
+                reference: "Handout Page 96, Q27; TC 543.006"
+            },
+            {
+                question: "To find information on a traffic control device *not* described in the Transportation Code, an officer should consult the:",
+                options: ["Texas Penal Code", "Texas Manual on Uniform Traffic Control Devices (TMUTCD)", "DPS Driver Handbook", "Federal Register"],
+                answer: "Texas Manual on Uniform Traffic Control Devices (TMUTCD)",
+                explanation: "TC 544.001 directs TXDOT to adopt a sign manual (the TMUTCD), which provides the standards for all official traffic control devices.",
+                reference: "Handout Page 96, Q29; TC 544.001"
+            },
+            {
+                question: "A driver at an intersection with a dark/inoperable traffic signal must:",
+                options: ["Stop as if it were a stop sign", "Yield as if it were a yield sign", "Proceed with caution", "Wait for a police officer"],
+                answer: "Stop as if it were a stop sign",
+                explanation: "TC 544.007(i) requires all traffic to stop for a non-working signal, treating it as an all-way stop.",
+                reference: "Handout Page 97, Q31; TC 544.007(i)"
+            },
+            {
+                question: "A flashing red traffic light requires the same obedience as a stop sign.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 544.008(1) requires a driver at a flashing red signal to stop and then proceed subject to the rules applicable to a stop sign.",
+                reference: "Handout Page 97, Q32; TC 544.008(1)"
+            },
+            {
+                question: "Where must a driver stop for a stop sign?",
+                options: ["At the stop sign", "At a clearly marked stop line", "Before entering the crosswalk (if no stop line)", "Either B or C"],
+                answer: "Either B or C",
+                explanation: "TC 544.010 lists the required stopping points in order: 1) At a stop line. 2) If no stop line, before the crosswalk. 3) If neither, at the point nearest the intersection with a view of traffic.",
+                reference: "Handout Page 97, Q33; TC 544.010"
+            },
+            {
+                question: "An operator passing another vehicle must return to their lane before coming within how many feet of an approaching vehicle?",
+                options: ["100 feet", "200 feet", "300 feet", "500 feet"],
+                answer: "200 feet",
+                explanation: "TC 545.054(a) requires the passing vehicle to return to the right side of the roadway before coming within 200 feet of an oncoming vehicle.",
+                reference: "Handout Page 143, Q1; TC 545.054(a)"
+            },
+            {
+                question: "It is a violation for an operator to cross over a double yellow no-passing zone center stripe to turn left into a private drive.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 545.055(b) prohibits driving on the left in a no-passing zone, but provides an exception for an operator turning left into or from an alley, private road, or driveway.",
+                reference: "Handout Page 143, Q2; TC 545.055(b)"
+            },
+            {
+                question: "Which of the following is *NOT* one of the 7 exceptions (SAD PAPA) for driving on the *right* improved shoulder?",
+                options: ["To accelerate before entering traffic", "To avoid a collision", "To pass a vehicle that is slowing or stopped", "To pass a vehicle that is just driving too slowly"],
+                answer: "To pass a vehicle that is just driving too slowly",
+                explanation: "The exceptions are Stop/Stand/Park, Accelerate, Decelerate, Pass (slowing/stopped/disabled), Allow pass, Permitted by sign, Avoid collision. Passing a slow-moving (but not slowing/stopped) vehicle is not an exception.",
+                reference: "Handout Page 143, Q3; TC 545.058(a)"
+            },
+            {
+                question: "An operator on a roadway divided into two or more clearly marked lanes must drive as nearly as practical entirely within a single lane AND may not move from the lane unless that movement can be made safely.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "This is the text of TC 545.060(a). A violation requires *both* failing to stay in the lane *and* doing so in an unsafe manner (per case law).",
+                reference: "Handout Page 143, Q5; TC 545.060(a)"
+            },
+            {
+                question: "On a multi-lane highway (3+ lanes), if a vehicle from the right lane and a vehicle from the left lane try to enter the center lane at the same time, who must yield?",
+                options: ["The vehicle from the left must yield", "The vehicle from the right must yield", "The faster vehicle has priority", "The truck has priority"],
+                answer: "The vehicle from the right must yield",
+                explanation: "TC 545.061(b) states the operator of a vehicle on the *right* must yield the right-of-way to the vehicle on the *left*.",
+                reference: "Handout Page 143, Q6; TC 545.061(b)"
+            },
+            {
+                question: "An operator stopped for a school bus with flashing red lights may proceed when...",
+                options: ["The bus resumes motion", "The bus driver signals them to proceed", "The flashing red lights are no longer activated", "Any of the above"],
+                answer: "Any of the above",
+                explanation: "TC 545.066(a) lists these three conditions, any of which allows the driver to proceed.",
+                reference: "Handout Page 144, Q8; TC 545.066(a)"
+            },
+            {
+                question: "To make a *right turn* at an intersection, an operator must make the ______ and the ______ as close as practicable to the right-hand edge.",
+                options: ["approach, turn", "approach, stop", "turn, exit", "stop, turn"],
+                answer: "approach, turn",
+                explanation: "TC 545.101(a) requires *both* the approach for the right turn *and* the turn itself to be made as close as practicable to the right-hand curb or edge.",
+                reference: "Handout Page 144, Q9; TC 545.101(a)"
+            },
+            {
+                question: "To make a *left turn* at an intersection, an operator must approach the intersection in the:",
+                options: ["Center of the lane", "Extreme right-hand lane", "Extreme left-hand lane lawfully available", "Any lane, as long as the turn is safe"],
+                answer: "Extreme left-hand lane lawfully available",
+                explanation: "TC 545.101(b) requires the operator to approach the turn in the extreme left-hand lane lawfully available for traffic moving in that direction.",
+                reference: "Handout Page 144, Q10; TC 545.101(b)"
+            },
+            {
+                question: "A turn signal must be used continuously for at least how far before turning?",
+                options: ["50 feet", "100 feet", "200 feet", "A 'reasonable distance'"],
+                answer: "100 feet",
+                explanation: "TC 545.104(b) requires a signal of intent to turn to be given continuously for not less than the last 100 feet of movement before the turn.",
+                reference: "Handout Page 144, Q11; TC 545.104(b)"
+            },
+            {
+                question: "An operator must signal for 100 feet of movement before changing lanes.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "The 100-foot requirement in TC 545.104(b) applies to *turns*. TC 545.104(a) requires a signal for a lane change but does not specify a distance, only that it be done safely (TC 545.103).",
+                reference: "Handout Page 144, Q12; TC 545.104"
+            },
+            {
+                question: "An operator may not make a U-turn on a curve or crest of a grade if the vehicle is not visible to an approaching vehicle within:",
+                options: ["200 feet", "300 feet", "500 feet", "1,000 feet"],
+                answer: "500 feet",
+                explanation: "TC 545.102(a) prohibits a U-turn (turning to move in the opposite direction) if the vehicle is not visible from 500 feet by an approaching vehicle.",
+                reference: "Handout Page 144, Q13; TC 545.102(a)"
+            },
+            {
+                question: "The 'Move Over/Slow Down' law (TC 545.157) applies to stationary police vehicles *only* if they are using their emergency lights.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 545.157(a) states the law applies to a stationary authorized emergency vehicle *using visual signals* (emergency lights).",
+                reference: "Handout Page 144, Q15; TC 545.157(a)"
+            },
+            {
+                question: "A vehicle passing a stationary tow truck with its lights activated on a multi-lane road must vacate the lane closest or slow to:",
+                options: ["20 MPH below the posted speed limit", "15 MPH below the posted speed limit", "A speed of 25 MPH", "A speed of 20 MPH"],
+                answer: "20 MPH below the posted speed limit",
+                explanation: "TC 545.157(b)(1) requires the operator to slow to a speed not to exceed 20 MPH less than the posted speed limit (or 5 MPH if the limit is 25 or less).",
+                reference: "Handout Page 145, Q16; TC 545.157(b)(1)"
+            },
+            {
+                question: "Which of the following is a violation of parking where prohibited (TC 545.302)?",
+                options: ["Parking 13 feet from a fire hydrant", "Parking 22 feet from a crosswalk at an intersection", "Parking 5 feet from a private driveway", "All of the above"],
+                answer: "All of the above",
+                explanation: "TC 545.302(b) prohibits parking: (1) in front of a driveway, (2) within 15 feet of a fire hydrant, (3) within 20 feet of a crosswalk. All three options are violations.",
+                reference: "Handout Page 145, Q17; TC 545.302(b)"
+            },
+            {
+                question: "A vehicle parked on a two-way roadway must do so with its right wheels within how many inches of the right-hand curb?",
+                options: ["12 inches", "18 inches", "24 inches", "6 inches"],
+                answer: "18 inches",
+                explanation: "TC 545.303(a) requires the right-hand wheels to be parallel to and within 18 inches of the right-hand curb or edge of the roadway.",
+                reference: "Handout Page 145, Q18; TC 545.303(a)"
+            },
+            {
+                question: "To charge 'Fail to Control Speed' (TC 545.351(b)(2)), the operator must have failed to control speed to avoid colliding with:",
+                options: ["A person or vehicle *on or entering the highway* in compliance with law", "A tree off the roadway", "A guardrail", "Any fixed object"],
+                answer: "A person or vehicle *on or entering the highway* in compliance with law",
+                explanation: "This offense is specific to colliding with another person or vehicle that is *lawfully* on or entering the highway. Colliding with a fixed object is more likely 'Unsafe Speed'.",
+                reference: "Handout Page 145, Q19; TC 545.351(b)(2)"
+            },
+            {
+                question: "What is the prima facie speed limit in an *urban district* if no speed limit is posted?",
+                options: ["20 MPH", "25 MPH", "30 MPH", "35 MPH"],
+                answer: "30 MPH",
+                explanation: "TC 545.352(b)(1) sets the prima facie speed limit in an urban district at 30 MPH.",
+                reference: "Handout Page 145, Q20; TC 545.352(b)(1)"
+            },
+            {
+                question: "What is the prima facie speed limit in an *alley*?",
+                options: ["10 MPH", "15 MPH", "20 MPH", "25 MPH"],
+                answer: "15 MPH",
+                explanation: "TC 545.352(b)(1-a) sets the prima facie speed limit in an alley at 15 MPH.",
+                reference: "Handout Page 145, Q20; TC 545.352(b)(1-a)"
+            },
+            {
+                question: "What is the prima facie speed limit for a school bus *without* a CMV inspection?",
+                options: ["45 MPH", "50 MPH", "55 MPH", "60 MPH"],
+                answer: "50 MPH",
+                explanation: "TC 545.352(b)(4) sets the limit at 50 MPH for a school bus that has not passed a CMV inspection.",
+                reference: "Handout Page 145, Q20; TC 545.352(b)(4)"
+            },
+            {
+                question: "The speed limit does not apply to a police vehicle on routine patrol.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 545.365(a)(2) provides a speed limit exception for 'a police patrol'. This exception is not tied to responding to an emergency call.",
+                reference: "Handout Page 145, Q22; TC 545.365(a)(2)"
+            },
+            {
+                question: "A person can be charged with 'Reckless Driving' in a grocery store parking lot.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 545.401 (Reckless Driving) is one of the few Subtitle C offenses that applies in places *other than* highways, such as parking lots (which are 'public places').",
+                reference: "Handout Page 145, Q23; TC 545.401(b)"
+            },
+            {
+                question: "An operator may not follow a fire truck responding to an alarm or an ambulance flashing red lights closer than:",
+                options: ["200 feet", "300 feet", "500 feet", "1,000 feet"],
+                answer: "500 feet",
+                explanation: "TC 545.407 establishes a minimum following distance of 500 feet for both.",
+                reference: "Handout Page 145, Q24; TC 545.407"
+            },
+            {
+                question: "A drawbar or towing chain/cable may not be longer than:",
+                options: ["10 feet", "15 feet", "20 feet", "25 feet"],
+                answer: "15 feet",
+                explanation: "TC 545.409(b) states the drawbar or other connection may not be longer than 15 feet between the vehicles.",
+                reference: "Handout Page 146, Q25; TC 545.409(b)"
+            },
+            {
+                question: "A *white* flag at least 12 inches square must be displayed on a tow chain between vehicles.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 545.409(c) requires a white flag of at least 12 inches square if the connection is a chain, rope, or cable.",
+                reference: "Handout Page 146, Q26; TC 545.409(c)"
+            },
+            {
+                question: "Which of the following is *NOT* an exception to safety chain requirements (TC 545.410)?",
+                options: ["A trailer used for agricultural purposes", "A trailer with a GVWR of 4,500 lbs or less", "A trailer with a fifth-wheel or gooseneck connection", "A vehicle operated under Federal Motor Carrier Safety Regulations"],
+                answer: "A trailer with a GVWR of 4,500 lbs or less",
+                explanation: "TC 545.410 applies to *all* passenger cars and light trucks towing. While trailers under 4,500 lbs are exempt from *brake* requirements, they are *not* exempt from safety chain requirements.",
+                reference: "Handout Page 146, Q27; TC 545.410"
+            },
+            {
+                question: "A 14-year-old child sitting in the back seat of a vehicle commits a violation when he does not wear his safety belt.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "The *driver* commits the violation. TC 545.413(b) makes the *operator* responsible for securing passengers younger than 17. TC 545.413(a) only makes passengers *15 and older* responsible for themselves.",
+                reference: "Handout Page 146, Q28; TC 545.413"
+            },
+            {
+                question: "A child must be in a child safety seat if they are younger than...?",
+                options: ["8 years of age, unless taller than 4'9\"", "7 years of age, unless taller than 4'7\"", "10 years of age, regardless of height", "5 years of age, regardless of height"],
+                answer: "8 years of age, unless taller than 4'9\"",
+                explanation: "TC 545.412(a) requires a safety seat for children younger than 8 *unless* they are taller than 4 feet, 9 inches.",
+                reference: "Handout Page 146, Q29 & 30; TC 545.412(a)"
+            },
+            {
+                question: "The operator of a vehicle can be cited for any unrestrained passenger in the vehicle who is younger than:",
+                options: ["18 years of age", "17 years of age", "16 years of age", "15 years of age"],
+                answer: "17 years of age",
+                explanation: "TC 545.413(b) makes the operator responsible for passengers who are *younger than 17*. Passengers 17 and older are responsible for themselves.",
+                reference: "Handout Page 146, Q31; TC 545.413(b)"
+            },
+            {
+                question: "The *operator* of a vehicle registered as a 'Farm Truck' has a defense to prosecution for not wearing a safety belt.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 545.413(e)(6) provides a defense to prosecution for the *operator* of a farm truck. This defense does *not* apply to passengers.",
+                reference: "Handout Page 146, Q32; TC 545.413(e)(6)"
+            },
+            {
+                question: "What is the minimum age for a passenger on a motorcycle that is *not* equipped with a sidecar?",
+                options: ["There is no minimum age", "5 years of age", "8 years of age", "12 years of age"],
+                answer: "5 years of age",
+                explanation: "TC 545.416(d) states an operator may not carry a passenger under 5 years old, with an exception for sidecars.",
+                reference: "Handout Page 146, Q33; TC 545.416(d)"
+            },
+            {
+                question: "A vehicle may use a parking lot to 'cut the corner' at an intersection as long as the vehicle comes to a complete stop inside the parking lot.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 545.423(b) explicitly prohibits crossing a parking lot at an intersection to turn. The stop requirement in 545.423(a) is a separate rule and does not make 'cutting the corner' legal.",
+                reference: "Handout Page 146, Q34; TC 545.423"
+            },
+            {
+                question: "A person under 18 years of age may operate a motor vehicle while using a *hands-free* cell phone.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 545.424(a)(1) prohibits a person under 18 from using *any* wireless communication device while driving, *even with a hands-free device*. An exception exists only for an emergency.",
+                reference: "Handout Page 146, Q35; TC 545.424(a)(1)"
+            },
+            {
+                question: "Which of the following is *NOT* permissible conduct for an AEV responding to an emergency?",
+                options: ["Parking in a 'No Parking' zone", "Proceeding past a red light after slowing", "Exceeding the speed limit if not endangering life/property", "Driving with 'reckless disregard for the safety of others'"],
+                answer: "Driving with 'reckless disregard for the safety of others'",
+                explanation: "TC 546.005 explicitly states that the chapter *does not* relieve the operator from the consequences of reckless disregard for the safety of others.",
+                reference: "Handout Page 147, Q1; TC 546.001, 546.005"
+            },
+            {
+                question: "An AEV operator may proceed past a red light or stop sign, but *only* after:",
+                options: ["Coming to a complete stop", "Slowing as necessary for safe operation", "Honking twice", "Turning on all emergency lights"],
+                answer: "Slowing as necessary for safe operation",
+                explanation: "TC 546.001(2) allows an AEV to proceed past a red light or stop sign, but only *after slowing as necessary for safe operation*.",
+                reference: "Handout Page 197, Q2; TC 546.001(2)"
+            },
+            {
+                question: "A police officer may operate an AEV for a law enforcement purpose *without* lights or siren if they believe the suspect will destroy evidence or if traffic conditions warrant it.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 546.004(c) provides these specific exceptions for police officers, allowing for tactical operation.",
+                reference: "Handout Page 197, Q3; TC 546.004(c)"
+            },
+            {
+                question: "A 'slow-moving vehicle' is defined as a motor vehicle designed to operate at a maximum speed of:",
+                options: ["20 MPH or less", "25 MPH or less", "30 MPH or less", "35 MPH or less"],
+                answer: "25 MPH or less",
+                explanation: "TC 547.001(7) defines a 'slow-moving vehicle' as one designed to operate at a maximum speed of 25 miles per hour or less.",
+                reference: "Handout Page 197, Q4; TC 547.001(7)"
+            },
+            {
+                question: "A slow-moving vehicle (SMV) emblem may be displayed on a stationary object, like a driveway entrance.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 547.005(a) explicitly prohibits using an SMV emblem on a stationary object.",
+                reference: "Handout Page 197, Q5; TC 547.005(a)"
+            },
+            {
+                question: "TXDOT lighting standards can permit highway maintenance vehicles to flash lights (like blue) that are normally prohibited by the Transportation Code.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 547.105 gives TXDOT the authority to set lighting standards for these vehicles, which may include lights otherwise restricted by TC 547.305.",
+                reference: "Handout Page 197, Q6; TC 547.105"
+            },
+            {
+                question: "A vehicle's required lights must be displayed at nighttime and when visibility is less than:",
+                options: ["2,000 feet", "1,500 feet", "1,000 feet", "500 feet"],
+                answer: "1,000 feet",
+                explanation: "TC 547.302(a) requires lights to be on at nighttime *or* when a person or vehicle is not clearly discernible at 1,000 feet.",
+                reference: "Handout Page 197, Q7; TC 547.302(a)"
+            },
+            {
+                question: "What color would be *prohibited* for a signaling device (like a turn signal) mounted on the *rear* of a vehicle?",
+                options: ["White", "Red", "Amber", "Yellow"],
+                answer: "White",
+                explanation: "TC 547.303(d) states a signaling device on the rear may be red, amber, or yellow. White is only for backup lamps or license plate lamps.",
+                reference: "Handout Page 198, Q8; TC 547.303(d)"
+            },
+            {
+                question: "A farm trailer operated at nighttime is exempt from lighting requirements.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 547.304(a) provides an exemption for farm trailers *only during the day*. At night, they must have all required lights.",
+                reference: "Handout Page 198, Q9; TC 547.304(a)"
+            },
+            {
+                question: "A boat trailer with a gross weight of 4,700 pounds is exempt from lighting requirements if used during the daytime.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 547.304(b) provides an exemption for boat trailers *less than 4,500 pounds*. This trailer is over that weight and would need stop and turn signal lamps even during the day.",
+                reference: "Handout Page 198, Q11; TC 547.304(b)"
+            },
+            {
+                question: "You stop a 2020 Honda Civic for a defective high-mounted stop lamp. Where is this lamp required?",
+                options: ["TC 547.323", "It's not required, it's optional", "TC 547.3215, which adopts the Federal 108 Lighting Standard", "TC 547.305"],
+                answer: "TC 547.3215, which adopts the Federal 108 Lighting Standard",
+                explanation: "The TRC itself doesn't require it. However, TC 547.3215 adopts the Federal Motor Vehicle Safety Standard (FMVSS) 571.108, which *does* require this lamp on post-1985 passenger cars.",
+                reference: "Handout Page 198, Q13; TC 547.3215, 571.108"
+            },
+            {
+                question: "A passenger car manufactured after what date must have a high-mounted stop lamp?",
+                options: ["September 1, 1985", "September 1, 1993", "January 1, 1968", "January 1, 2000"],
+                answer: "September 1, 1985",
+                explanation: "The Federal 108 Lighting Standard (adopted by TX) requires high-mounted stop lamps on passenger cars manufactured on or after September 1, 1985.",
+                reference: "Handout Page 198, Q14; FMVSS 571.108"
+            },
+            {
+                question: "A pickup truck (GVWR 8,000 lbs) manufactured after what date must have a high-mounted stop lamp?",
+                options: ["September 1, 1985", "September 1, 1993", "It's not required for trucks", "January 1, 1990"],
+                answer: "September 1, 1993",
+                explanation: "The requirement for high-mounted stop lamps was extended to most trucks, MPVs, and buses (under 10k lbs GVWR / 80\" wide) on or after September 1, 1993.",
+                reference: "Handout Page 198, Q15; FMVSS 571.108"
+            },
+            {
+                question: "A vehicle with a GVWR of 12,000 pounds is required to have a high-mounted stop lamp.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "The Federal 108 Lighting Standard for high-mounted stop lamps does *not* apply to vehicles with a GVWR of over 10,000 pounds.",
+                reference: "Handout Page 198, Q16; FMVSS 571.108"
+            },
+            {
+                question: "A taillamp must be what color and mounted at what height?",
+                options: ["Red, 15-72 inches", "Red, 24-54 inches", "Red or Amber, 15-72 inches", "Red or Amber, 24-54 inches"],
+                answer: "Red, 15-72 inches",
+                explanation: "Both the TRC (547.322) and the Federal 108 standard require taillamps to be red and mounted between 15 and 72 inches from the ground.",
+                reference: "Handout Page 199, Q17; TC 547.322"
+            },
+            {
+                question: "According to the *TRC*, turn signals on the *front* must be ______ or ______, and on the *rear* must be ______ or ______.",
+                options: ["Amber, Amber; Red, Red", "White, Amber; Red, Amber", "White, White; Red, Red", "Amber, Red; Amber, Red"],
+                answer: "White, Amber; Red, Amber",
+                explanation: "TC 547.324 (which applies to pre-1968 vehicles) permits white or amber on the front, and red or amber on the rear. (Note: Federal standards for newer cars require *amber* on the front).",
+                reference: "Handout Page 199, Q18; TC 547.324"
+            },
+            {
+                question: "A motor vehicle may be equipped with no more than how many auxiliary *driving* lamps?",
+                options: ["One", "Two", "Four", "No limit"],
+                answer: "Two",
+                explanation: "TC 547.330 permits no more than two auxiliary *driving* lamps. (This is separate from fog lamps, spotlamps, etc.).",
+                reference: "Handout Page 199, Q19; TC 547.330"
+            },
+            {
+                question: "An operator must dim high-beam headlamps within ___ feet of an approaching vehicle and ___ feet of a vehicle being followed.",
+                options: ["500, 300", "300, 500", "500, 200", "1000, 500"],
+                answer: "500, 300",
+                explanation: "TC 547.333(c) requires dimming for an approaching vehicle within 500 feet and for a following vehicle within 300 feet.",
+                reference: "Handout Page 199, Q20; TC 547.333(c)"
+            },
+            {
+                question: "Clearance and side marker lamps are required on all buses, trucks, and trailers at least how wide?",
+                options: ["72 inches", "80 inches", "96 inches", "102 inches"],
+                answer: "80 inches",
+                explanation: "TC 547.352 and the Federal 108 standard make 80 inches the width at which extra lamps (clearance, ID, side markers) are required.",
+                reference: "Handout Page 199, Q21; TC 547.352"
+            },
+            {
+                question: "A motor vehicle horn must be in good working condition and audible from at least:",
+                options: ["100 feet", "200 feet", "300 feet", "500 feet"],
+                answer: "200 feet",
+                explanation: "TC 547.501(a) requires a horn to be audible under normal conditions for at least 200 feet.",
+                reference: "Handout Page 199, Q22; TC 547.501(a)"
+            },
+            {
+                question: "A truck (80\"+ wide) stopped on a roadway must *immediately* display hazard lamps, and must display additional warning devices (triangles/flares) if stopped for more than:",
+                options: ["1 minute", "5 minutes", "10 minutes", "30 minutes"],
+                answer: "10 minutes",
+                explanation: "TC 547.503 requires immediate hazard lamps. TC 547.504 requires the placement of flares/reflectors if the vehicle is stopped for more than 10 minutes (at night).",
+                reference: "Handout Page 199, Q23; TC 547.503, 547.504"
+            },
+            {
+                question: "An exhaust emission system is considered defective if the vehicle emits visible smoke for how long under normal driving?",
+                options: ["Any visible smoke", "5 seconds or longer", "10 seconds or longer", "30 seconds or longer"],
+                answer: "10 seconds or longer",
+                explanation: "TC 547.605(d) defines the violation as emitting visible smoke for 10 seconds or longer (or smoke that remains suspended for 10+ seconds).",
+                reference: "Handout Page 199, Q24; TC 547.605(d)"
+            },
+            {
+                question: "Safety guards (mud flaps) must be suspended within how many inches of the ground?",
+                options: ["6 inches", "8 inches", "10 inches", "12 inches"],
+                answer: "12 inches",
+                explanation: "TC 547.606 requires them to be within 8 inches. However, DPS Administrative Code (Rule 21.4) allows a 4-inch tolerance, making the effective enforcement height 12 inches.",
+                reference: "Handout Page 199, Q25; TC 547.606, Rule 21.4"
+            },
+            {
+                question: "Which of the following vehicles is *NOT* exempt from mud flap requirements?",
+                options: ["A truck-tractor operated *without* a trailer", "A pole trailer", "A recreational vehicle (RV)", "A dump truck"],
+                answer: "A dump truck",
+                explanation: "TC 547.606 and Admin Rule 21.4 provide exceptions for truck-tractors (alone), pole trailers, RVs, and buses. A dump truck is a 'truck' and requires them.",
+                reference: "Handout Page 199, Q26; TC 547.606"
+            },
+            {
+                question: "The window tint law (TC 547.613) applies to a side window *behind* the vehicle operator.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 547.613(b)(2-a) provides an exception, stating the tint law does *not* apply to a side window to the rear of the operator. It can be as dark as desired.",
+                reference: "Handout Page 199, Q27; TC 547.613(b)(2-a)"
+            },
+            {
+                question: "The Texas window tint law (TC 547.613) applies to a vehicle that is not registered in Texas.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 547.613(b)(12) provides a specific exception for a motor vehicle not registered in this state.",
+                reference: "Handout Page 199, Q28; TC 547.613(b)(12)"
+            },
+            {
+                question: "It is a violation to paint *any* vehicle National School Bus Glossy Yellow unless it is a school bus.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "This is a common misconception. TC 547.7012 prohibits *Multifunction School Activity Buses* from being this color. There is no law prohibiting a regular citizen from painting their personal car this color.",
+                reference: "Handout Page 200, Q29; TC 547.7012"
+            },
+            {
+                question: "School buses are *required* to be equipped with movable stop arms and rooftop warning lamps.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 547.701(b) states that a school bus *may* be (is permitted), but is not required, to be equipped with these devices.",
+                reference: "Handout Page 200, Q30; TC 547.701(b)"
+            },
+            {
+                question: "A slow-moving vehicle (SMV) emblem must be:",
+                options: ["Mounted base down on the rear", "Visible from 500 feet", "Clean and reflective", "All of the above"],
+                answer: "All of the above",
+                explanation: "TC 547.703 lists all these requirements for the proper display of an SMV emblem.",
+                reference: "Handout Page 200, Q31; TC 547.703"
+            },
+            {
+                question: "Motorcycles must have their headlamp illuminated at all times, *unless* the motorcycle was manufactured before what model year?",
+                options: ["1980", "1975", "1970", "1968"],
+                answer: "1975",
+                explanation: "TC 547.801(d) requires the headlamp to be on at all times, but provides an exception for motorcycles manufactured before the 1975 model year.",
+                reference: "Handout Page 200, Q32; TC 547.801(d)"
+            },
+            // --- NEW BATCH 4 QUESTIONS START HERE ---
+            {
+                question: "For inspection purposes (TC 548.001), which vehicle is *NOT* considered a 'commercial motor vehicle'?",
+                options: ["A vehicle with GVWR of 30,000 lbs", "A bus designed for 20 passengers", "A farm vehicle with a GVWR of 40,000 lbs", "A truck hauling placarded HazMat"],
+                answer: "A farm vehicle with a GVWR of 40,000 lbs",
+                explanation: "TC 548.001(1) specifically *excludes* a farm vehicle with a gross weight/GVWR of less than 48,000 pounds from the definition of a CMV for inspection purposes.",
+                reference: "Handout Page 201: TC 548.001(1)"
+            },
+            {
+                question: "Which of the following items is *NOT* required to be inspected on a moped (TC 548.051)?",
+                options: ["Brakes", "Headlamps", "Exhaust system", "Rear lamps"],
+                answer: "Exhaust system",
+                explanation: "TC 548.051(b) states a moped is inspected like a motorcycle, *except* that the *only* items inspected are brakes, headlamps, rear lamps, and reflectors.",
+                reference: "Handout Page 201: TC 548.051(b)"
+            },
+            {
+                question: "Which of the following vehicles *IS* subject to an annual safety inspection (TC 548.052)?",
+                options: ["A vehicle with a One-Trip Permit", "A farm trailer", "A vehicle with Dealer Temporary Tags", "A vehicle with a 30-Day Permit"],
+                answer: "A vehicle with a 30-Day Permit",
+                explanation: "TC 548.052 lists exemptions. One-Trip Permits, farm trailers, and dealer tags are exempt. 30-Day permits (and 72/144-hour permits) are *not* exempt and require inspection.",
+                reference: "Handout Page 202: TC 548.052"
+            },
+            {
+                question: "A trailer with a registered gross weight of 7,500 pounds requires an annual safety inspection.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 548.052(3) exempts a trailer, semitrailer, pole trailer, or mobile home with an actual or registered gross weight of 7,500 pounds *or less*.",
+                reference: "Handout Page 202: TC 548.052(3)"
+            },
+            {
+                question: "A trailer with a registered gross weight of 7,501 pounds requires an annual safety inspection.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "The exemption in TC 548.052(3) is for 7,500 pounds or less. At 7,501 pounds, the trailer is no longer exempt and must be inspected.",
+                reference: "Handout Page 202, Q1; TC 548.052(3)"
+            },
+            {
+                question: "Chapter 550 (Collisions) applies to which of the following locations?",
+                options: ["Private residential driveways", "Private parking garages where a fee is charged", "Private access ways or parking areas provided by a business for clients", "All private property"],
+                answer: "Private access ways or parking areas provided by a business for clients",
+                explanation: "TC 550.001 expands the applicability of crash laws beyond just highways to include places like business parking lots, but it *excludes* private residential property and pay-to-park garages.",
+                reference: "Handout Page 203: TC 550.001"
+            },
+            {
+                question: "What is the penalty for Failure to Stop and Render Aid (TC 550.021) in a crash involving *death*?",
+                options: ["State Jail Felony", "3rd Degree Felony", "2nd Degree Felony", "1st Degree Felony"],
+                answer: "2nd Degree Felony",
+                explanation: "TC 550.021(c)(1) makes an offense involving the death of a person a felony of the second degree.",
+                reference: "Handout Page 204: TC 550.021(c)"
+            },
+            {
+                question: "What is the penalty for Failure to Stop and Render Aid (TC 550.021) in a crash involving *Serious Bodily Injury*?",
+                options: ["State Jail Felony", "3rd Degree Felony", "2nd Degree Felony", "Class A Misdemeanor"],
+                answer: "3rd Degree Felony",
+                explanation: "TC 550.021(c)(2) makes an offense involving serious bodily injury a felony of the third degree.",
+                reference: "Handout Page 204: TC 550.021(c)"
+            },
+            {
+                question: "After a non-injury crash on a *freeway in a metropolitan area*, what is a driver required to do (TC 550.022)?",
+                options: ["Leave the vehicles in place for the police investigation", "Move the vehicles to a safe location (shoulder, exit ramp, etc.) as soon as possible", "Wait for a tow truck to move the vehicles", "Only move the vehicles if a police officer orders it"],
+                answer: "Move the vehicles to a safe location (shoulder, exit ramp, etc.) as soon as possible",
+                explanation: "TC 550.022(b) requires operators to move their vehicles from the freeway main lanes if the vehicles can be normally and safely driven, to minimize traffic interference.",
+                reference: "Handout Page 204: TC 550.022(b)"
+            },
+            {
+                question: "What is the penalty for Failure to Stop and Give Information (TC 550.022) after a crash involving vehicle damage of $200 or more?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class B Misdemeanor",
+                explanation: "TC 550.022(c)(2) makes this offense a Class B Misdemeanor if the damage is $200 or more.",
+                reference: "Handout Page 204: TC 550.022(c)"
+            },
+            {
+                question: "What is the penalty for Duty on Striking Unattended Vehicle (TC 550.024) if the damage is *less* than $200?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "No offense", "A warning"],
+                answer: "Class C Misdemeanor",
+                explanation: "TC 550.024(c)(1) makes this offense a Class C Misdemeanor if the damage is less than $200.",
+                reference: "Handout Page 205: TC 550.024(c)"
+            },
+            {
+                question: "An operator must make an *immediate report* of a collision (TC 550.026) if the crash involves injury, death, or...?",
+                options: ["Damage over $500", "Damage over $1,000", "Damage to a vehicle so it cannot be normally and safely driven", "Any damage to a vehicle"],
+                answer: "Damage to a vehicle so it cannot be normally and safely driven",
+                explanation: "TC 550.026 requires an immediate report (by quickest means, e.g., phone) if there is injury, death, or a vehicle is disabled.",
+                reference: "Handout Page 205: TC 550.026"
+            },
+            {
+                question: "A peace officer *may* investigate a crash (TC 550.041) if it involves injury, death, or apparent property damage of at least...?",
+                options: ["$200", "$500", "$1,000", "Any amount"],
+                answer: "$1,000",
+                explanation: "TC 550.041(a) gives peace officers the authority to investigate crashes that meet the threshold of $1,000 in apparent damage, or involve injury/death.",
+                reference: "Handout Page 206: TC 550.041(a)"
+            },
+            {
+                question: "A crash is *NOT* investigable by a peace officer under Chapter 550 (TC 550.041) if it occurs where?",
+                options: ["On a state highway", "In a public school parking lot", "In a private residential parking area or a paid parking lot", "In a business parking lot"],
+                answer: "In a private residential parking area or a paid parking lot",
+                explanation: "TC 550.041(b) and 550.001(2) create exceptions for these specific locations, making crashes there not investigable *under this chapter*.",
+                reference: "Handout Page 206: TC 550.041(b)"
+            },
+            {
+                question: "An officer who investigates a reportable crash (TC 550.062) *must* file a written report (CR-3) within how many days?",
+                options: ["5 days", "10 days", "15 days", "30 days"],
+                answer: "10 days",
+                explanation: "TC 550.062(b) requires the officer's report to be filed with TXDOT no later than the 10th day after the date of the crash.",
+                reference: "Handout Page 206: TC 550.062(b)"
+            },
+            {
+                question: "Under Subtitle C, how are mopeds and electric bicycles generally treated?",
+                options: ["Like motor vehicles", "Like pedestrians", "Like bicycles", "They are not regulated"],
+                answer: "Like bicycles",
+                explanation: "TC 551.002 states that for purposes of Subtitle C (Rules of the Road), a moped or electric bicycle is considered a bicycle.",
+                reference: "Handout Page 207: TC 551.002"
+            },
+            {
+                question: "A person riding a bicycle must ride only on or astride a permanent and regular seat.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 551.102(a) requires a bicyclist to ride on the permanent, regular seat.",
+                reference: "Handout Page 208: TC 551.102(a)"
+            },
+            {
+                question: "A bicyclist may operate with 'no hands' on the handlebars as long as they are balanced.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 551.102(c) prohibits carrying an object that prevents operating with *at least one hand* on the handlebars. This implies at least one hand is required at all times.",
+                reference: "Handout Page 208: TC 551.102(c)"
+            },
+            {
+                question: "A bicyclist moving slower than traffic on a roadway must ride:",
+                options: ["On the sidewalk", "In the middle of the lane", "As near as practicable to the right curb or edge", "On the left side, facing traffic"],
+                answer: "As near as practicable to the right curb or edge",
+                explanation: "TC 551.103(a) requires slower-moving bicycles to ride as near as practicable to the right curb or edge.",
+                reference: "Handout Page 208: TC 551.103(a)"
+            },
+            {
+                question: "When is a bicyclist legally allowed to 'take the lane' (move away from the right curb)?",
+                options: ["When passing another vehicle", "When preparing to turn left", "When the lane is less than 14 feet wide and too narrow to share", "All of the above"],
+                answer: "All of the above",
+                explanation: "TC 551.103(a) provides all of these as valid exceptions, allowing a bicyclist to move from the right edge for safety and normal traffic maneuvers.",
+                reference: "Handout Page 208: TC 551.103(a)"
+            },
+            {
+                question: "Bicyclists on a roadway may ride no more than ___ abreast in a single lane.",
+                options: ["One (single file only)", "Two", "Three", "Four"],
+                answer: "Two",
+                explanation: "TC 551.103(c) permits bicyclists to ride two abreast as long as they occupy a single lane and do not impede traffic.",
+                reference: "Handout Page 208: TC 551.103(c)"
+            },
+            {
+                question: "What equipment is required on a bicycle operated at *night* (TC 551.104)?",
+                options: ["A horn and a white front lamp", "A white front lamp (500ft) and a red rear reflector or red lamp", "A white front lamp and a red rear lamp (reflectors not allowed)", "A brake and a bell"],
+                answer: "A white front lamp (500ft) and a red rear reflector or red lamp",
+                explanation: "TC 551.104(b) requires a white lamp on the front visible from 500 feet, and *either* a red reflector (visible 50-300ft) or a red lamp (visible 500ft) on the rear.",
+                reference: "Handout Page 210: TC 551.104(b)"
+            },
+            {
+                question: "What is the minimum age to operate a *Class 3* electric bicycle (TC 551.107)?",
+                options: ["14", "15", "16", "18"],
+                answer: "15",
+                explanation: "TC 551.107(b) states a person must be at least 15 years of age to operate a Class 3 electric bicycle.",
+                reference: "Handout Page 210: TC 551.107(b)"
+            },
+            {
+                question: "An Electric Personal Assistive Mobility Device (EPAMD), or Segway, must be operated on the sidewalk if one is available.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 551.202(a) *requires* an EPAMD to be operated on a sidewalk if one is available and accessible.",
+                reference: "Handout Page 212: TC 551.202(a)"
+            },
+            {
+                question: "If no sidewalk is available, an EPAMD (Segway) may be operated on a highway *only* if the speed limit is:",
+                options: ["30 MPH or less", "35 MPH or less", "40 MPH or less", "45 MPH or less"],
+                answer: "30 MPH or less",
+                explanation: "TC 551.202(a) restricts EPAMD operation to residential streets, roadways, or highways with a speed limit of 30 MPH or less.",
+                reference: "Handout Page 212: TC 551.202(a)"
+            },
+            {
+                question: "A *registered* Neighborhood Electric Vehicle (NEV) may only be operated on a highway with a speed limit of:",
+                options: ["30 MPH or less", "35 MPH or less", "40 MPH or less", "45 MPH or less"],
+                answer: "45 MPH or less",
+                explanation: "TC 551.303(a) allows a registered NEV (which can go up to 35 MPH) to be operated on highways with a speed limit of 45 MPH or less.",
+                reference: "Handout Page 213: TC 551.303(a)"
+            },
+            {
+                question: "An *unregistered* Neighborhood Electric Vehicle (NEV) may be operated in which location?",
+                options: ["On any road with a 35 MPH speed limit", "In a master planned community", "On any county road", "On a U.S. highway during the day"],
+                answer: "In a master planned community",
+                explanation: "TC 551.304(1) provides an exception for *unregistered* NEVs to be operated in a master planned community (or on a beach, or for golfing).",
+                reference: "Handout Page 213: TC 551.304(1)"
+            },
+            {
+                question: "A motor-assisted scooter may only be operated on a street or highway with a speed limit of:",
+                options: ["30 MPH or less", "35 MPH or less", "40 MPH or less", "45 MPH or less"],
+                answer: "35 MPH or less",
+                explanation: "TC 551.352(a) restricts motor-assisted scooters to highways with a speed limit of 35 MPH or less.",
+                reference: "Handout Page 215: TC 551.352(a)"
+            },
+            {
+                question: "A pocket bike or minimotorbike is *not* authorized for operation on any highway, road, street, bike path, or sidewalk.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 551.353 states that a pocket bike/minibike may *not* be operated on a highway, road, street, or sidewalk. They are for private property use only.",
+                reference: "Handout Page 215: TC 551.353"
+            },
+            {
+                question: "An *unregistered* golf cart (TC 551.403) may be operated to/from a golf course if it is daytime, the speed limit is 35 MPH or less, and...",
+                options: ["It is within 2 miles of the course", "It is within 5 miles of the course", "It is within 10 miles of the course", "Distance does not matter"],
+                answer: "It is within 5 miles of the course",
+                explanation: "TC 551.403(3) provides this specific exception, allowing operation *not more than five miles* from where the cart is usually parked (vs. 2 miles for an NEV or OHV).",
+                reference: "Handout Page 216: TC 551.403(3)"
+            },
+            {
+                question: "A municipality may pass an ordinance (TC 551.404) allowing golf carts on highways *only if* the speed limit is:",
+                options: ["30 MPH or less", "35 MPH or less", "40 MPH or less", "45 MPH or less"],
+                answer: "35 MPH or less",
+                explanation: "TC 551.404(a) allows a municipality to authorize golf cart use on highways within its boundaries with a speed limit of 35 MPH or less.",
+                reference: "Handout Page 217: TC 551.404(a)"
+            },
+            {
+                question: "A golf cart operated under a city ordinance (TC 551.404) must be equipped with all of the following *except*:",
+                options: ["Headlamps", "Taillamps", "Reflectors", "A windshield"],
+                answer: "A windshield",
+                explanation: "TC 551.4041 lists the required equipment: headlamps, taillamps, reflectors, parking brake, and mirrors. A windshield is not required by this section.",
+                reference: "Handout Page 218: TC 551.4041"
+            },
+            {
+                question: "Which of the following is *NOT* considered an 'Off-Highway Vehicle' (OHV) under TC 551A.001?",
+                options: ["All-Terrain Vehicle (ATV)", "Sand Rail", "Recreational Off-Highway Vehicle (ROV)", "Golf Cart"],
+                answer: "Golf Cart",
+                explanation: "TC 551A.001(1-d) lists the four vehicles that are OHVs: ATV, Sand Rail, ROV, and Utility Vehicle (UTV). A golf cart is defined and regulated separately.",
+                reference: "Handout Page 219: TC 551A.001(1-d)"
+            },
+            {
+                question: "What must a person possess to operate an OHV on a public beach (TC 551A.033)?",
+                options: ["A safety certificate", "A driver's license", "An OHV license plate", "Proof of insurance"],
+                answer: "A driver's license",
+                explanation: "TC 551A.033(a) requires a person operating an OHV on a beach to hold and have in their possession a driver's license. (A safety certificate is also required per 551A.031(c)).",
+                reference: "Handout Page 221: TC 551A.033(a)"
+            },
+            {
+                question: "An OHV license plate (TC 551A.052) is required for highway operation *unless* the vehicle is being used for:",
+                options: ["Recreation in a master planned community", "Agricultural purposes or utility work", "Going to a golf course", "Operating under a city ordinance"],
+                answer: "Agricultural purposes or utility work",
+                explanation: "TC 551A.052(b) requires the plate for highway operation, *except* as provided by Section 551A.057 (Ag/Utility use) or 551A.058 (Law Enforcement).",
+                reference: "Handout Page 222: TC 551A.052(b)"
+            },
+            {
+                question: "A city may pass an ordinance (TC 551A.053) allowing OHV operation on highways *only if* the speed limit is:",
+                options: ["30 MPH or less", "35 MPH or less", "40 MPH or less", "45 MPH or less"],
+                answer: "35 MPH or less",
+                explanation: "TC 551A.053(a) allows a municipality to authorize OHV use on highways within its boundaries with a speed limit of 35 MPH or less.",
+                reference: "Handout Page 222: TC 551A.053(a)"
+            },
+            {
+                question: "An OHV may be operated for agricultural work (TC 551A.057) on a highway (not interstate) if it is daytime, has an orange flag, has lights on, and is traveling no more than:",
+                options: ["5 miles", "10 miles", "25 miles", "50 miles"],
+                answer: "25 miles",
+                explanation: "TC 551A.057(a) lists all these conditions, including a distance limit of not more than 25 miles.",
+                reference: "Handout Page 223: TC 551A.057(a)"
+            },
+            {
+                question: "What safety apparel is required for operating an OHV on a highway (TC 551A.072)?",
+                options: ["DOT approved helmet", "Eye protection", "Seat belts (if equipped)", "All of the above"],
+                answer: "All of the above",
+                explanation: "TC 551A.072(a) requires all three: helmet, eye protection, and use of seat belts if the vehicle has them.",
+                reference: "Handout Page 224: TC 551A.072(a)"
+            },
+            {
+                question: "Helmets and eye protection are *NOT* required on an OHV (TC 551A.072) if:",
+                options: ["The operator is over 21", "The vehicle has 4 wheels, seats, seatbelts, and a roll cage", "The operator is using it for Agricultural/Utility work", "Both B and C"],
+                answer: "Both B and C",
+                explanation: "TC 551A.072(b) provides an exception for vehicles with a roll cage and seatbelts. TC 551A.057(b) provides an exception for Ag/Utility use.",
+                reference: "Handout Page 224: TC 551A.072(b), 551A.057(b)"
+            },
+            // --- NEW BATCH 5 QUESTIONS START HERE (Module 6 Review) ---
+            {
+                question: "A trailer with a registered weight of 7,501 pounds requires an annual safety inspection.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 548.052(3) exempts trailers with a gross weight of 7,500 pounds *or less*. This trailer is over the limit and must be inspected.",
+                reference: "Handout Page 226, Q1; TC 548.052(3)"
+            },
+            {
+                question: "Which of these vehicles *does* require an annual safety inspection?",
+                options: ["A farm trailer registered for 10,000 pounds", "A vehicle bearing a One-Trip Permit", "A vehicle bearing a Dealer Temporary Tag", "A vehicle bearing a 30-Day Permit"],
+                answer: "A vehicle bearing a 30-Day Permit",
+                explanation: "Farm trailers, One-Trip Permits, and Dealer Tags are all listed as *exempt* from inspection under TC 548.052. 30-Day Permits (and 72/144-hour permits) are *not* exempt.",
+                reference: "Handout Page 226, Q1; TC 548.052"
+            },
+            {
+                question: "An operator who strikes an unattended vehicle and flees commits what offense if the damage is *less* than $200?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "No offense"],
+                answer: "Class C Misdemeanor",
+                explanation: "Per TC 550.024(c)(1), this offense is a Class C Misdemeanor if damage is less than $200.",
+                reference: "Handout Page 227, Q3; TC 550.024"
+            },
+            {
+                question: "An operator who strikes a highway fixture and flees commits what offense if the damage is $200 or more?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "No offense"],
+                answer: "Class B Misdemeanor",
+                explanation: "Per TC 550.025(c)(2), this offense is a Class B Misdemeanor if damage is $200 or more.",
+                reference: "Handout Page 227, Q4; TC 550.025"
+            },
+            {
+                question: "An officer who investigates a crash must report it to TXDOT (file a CR-3) no later than:",
+                options: ["The 5th day after the crash", "The 10th day after the crash", "The 5th *business* day after the crash", "The 10th *business* day after the crash"],
+                answer: "The 10th day after the crash",
+                explanation: "TC 550.062(b) requires the written report to be filed not later than the 10th day after the date of the crash.",
+                reference: "Handout Page 227, Q5; TC 550.062(b)"
+            },
+            {
+                question: "If a sidewalk is available, an EPAMD (Segway) must be operated in the roadway.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 551.202(a) *requires* an EPAMD to be operated on an available and accessible sidewalk. It may *only* be used in the roadway if a sidewalk is not available.",
+                reference: "Handout Page 227, Q8; TC 551.202"
+            },
+            {
+                question: "An EPAMD (Segway) may only be operated on a roadway with a speed limit of:",
+                options: ["30 MPH or less", "35 MPH or less", "45 MPH or less", "Any speed limit"],
+                answer: "30 MPH or less",
+                explanation: "TC 551.202(a) restricts EPAMD operation (when no sidewalk is available) to highways with a speed limit of 30 MPH or less.",
+                reference: "Handout Page 227, Q9; TC 551.202"
+            },
+            {
+                question: "A motor-assisted scooter may only be operated on a roadway with a speed limit of:",
+                options: ["30 MPH or less", "35 MPH or less", "45 MPH or less", "Any speed limit"],
+                answer: "35 MPH or less",
+                explanation: "TC 551.352(a) restricts motor-assisted scooters to highways with a speed limit of 35 MPH or less.",
+                reference: "Handout Page 227, Q10; TC 551.352"
+            },
+            {
+                question: "If a Neighborhood Electric Vehicle (NEV) is *not* registered, it can legally be operated:",
+                options: ["On any highway with a speed limit of 35 MPH or less", "In a master planned community", "On a public beach", "Both B and C"],
+                answer: "Both B and C",
+                explanation: "TC 551.304 provides exceptions for *unregistered* NEVs, including operation in a master planned community, on a beach, or for golfing within 2 miles.",
+                reference: "Handout Page 228, Q11; TC 551.304"
+            },
+            {
+                question: "If a Neighborhood Electric Vehicle (NEV) *is* registered, it may be operated at speeds up to ___ on roadways with a speed limit of ___ or less.",
+                options: ["25 MPH, 35 MPH", "35 MPH, 35 MPH", "35 MPH, 45 MPH", "45 MPH, 45 MPH"],
+                answer: "35 MPH, 45 MPH",
+                explanation: "TC 551.303 allows a registered NEV (which has a max speed of 35 MPH) to operate on highways with a speed limit of 45 MPH or less.",
+                reference: "Handout Page 228, Q12; TC 551.303"
+            },
+            {
+                question: "Off-Highway Vehicles (OHVs) are designed for off-highway use and are *never* permitted to operate on public highways.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "Chapter 551A provides several specific, limited circumstances where an OHV *may* be operated on a public highway (e.g., beaches, Ag use, city ordinances).",
+                reference: "Handout Page 228, Q13; TC 551A.051"
+            },
+            {
+                question: "Which of these is *NOT* one of the four vehicles defined as an 'Off-Highway Vehicle'?",
+                options: ["All-Terrain Vehicle (ATV)", "Golf Cart", "Sand Rail", "Utility Vehicle (UTV)"],
+                answer: "Golf Cart",
+                explanation: "TC 551A.001(1-d) lists the four OHVs: ATV, Sand Rail, Recreational Off-Highway Vehicle (ROV), and Utility Vehicle (UTV). Golf Carts are regulated separately.",
+                reference: "Handout Page 228, Q14; TC 551A.001(1-d)"
+            },
+            {
+                question: "An All-Terrain Vehicle (ATV) is defined as having a width of not more than:",
+                options: ["48 inches", "50 inches", "60 inches", "72 inches"],
+                answer: "50 inches",
+                explanation: "TC 551A.001(1) includes in the definition of an ATV that it is 'not more than 50 inches in width'.",
+                reference: "Handout Page 228, Q15; TC 551A.001(1)"
+            },
+            {
+                question: "A person must be at least ___ years of age to operate an OHV on *public* OHV land *without* parental supervision.",
+                options: ["12", "14", "16", "18"],
+                answer: "14",
+                explanation: "TC 551A.032 states a person *younger than 14* must be accompanied and supervised by a parent or authorized adult.",
+                reference: "Handout Page 228, Q16; TC 551A.032"
+            },
+            {
+                question: "An OHV operated on a public beach or highway must be equipped with a brake system, a muffler system, and a spark arrester.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 551A.071(a) requires all three items (brake, muffler, spark arrester) for operation on public OHV land, a beach, or a highway.",
+                reference: "Handout Page 228, Q17; TC 551A.071(a)"
+            },
+            {
+                question: "An OHV license plate is required for highway operation *except* for agricultural use, utility work, or law enforcement.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 551A.052(b) requires the plate for highway use *except* as provided by TC 551A.057 (Ag/Utility) and TC 551A.058 (Law Enforcement).",
+                reference: "Handout Page 228, Q19; TC 551A.052(b)"
+            },
+            {
+                question: "What is the maximum travel distance for an OHV being used for agricultural work on a highway?",
+                options: ["10 miles", "25 miles", "50 miles", "No limit"],
+                answer: "25 miles",
+                explanation: "TC 551A.057(a)(5) limits operation for agricultural or utility work to a distance of not more than 25 miles.",
+                reference: "Handout Page 229, Q20; TC 551A.057"
+            },
+            {
+                question: "For *unregistered* operation to/from a golf course, what is the distance limit for a Golf Cart?",
+                options: ["2 miles", "5 miles", "10 miles", "No limit"],
+                answer: "5 miles",
+                explanation: "TC 551.403(3) allows a golf cart to travel *not more than five miles* for this purpose.",
+                reference: "Handout Page 229, Q22; TC 551.403(3)"
+            },
+            {
+                question: "For *unregistered* operation to/from a golf course, what is the distance limit for an NEV or OHV?",
+                options: ["2 miles", "5 miles", "10 miles", "No limit"],
+                answer: "2 miles",
+                explanation: "TC 551.304(3) and 551A.055(2) limit this operation for NEVs and OHVs to *not more than two miles*.",
+                reference: "Handout Page 229, Q22; TC 551.304, 551A.055"
+            },
+            // --- MODULE 7 STARTS HERE ---
+            {
+                question: "A pedestrian facing a steady *yellow* traffic signal (with no pedestrian signal) may not enter the roadway.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 552.001(c) states that a pedestrian facing a steady red or yellow signal may not enter the roadway.",
+                reference: "Handout Page 230: TC 552.001(c)"
+            },
+            {
+                question: "A pedestrian may *not* begin crossing the road if the pedestrian signal shows a 'WALK' sign.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 552.002(b) explicitly states a pedestrian *may* proceed across the roadway if the 'WALK' signal is displayed.",
+                reference: "Handout Page 230: TC 552.002"
+            },
+            {
+                question: "A pedestrian has already started crossing when the 'WAIT' (flashing red hand) signal begins. What should they do?",
+                options: ["Stop immediately in the crosswalk", "Return to the curb they just left", "Proceed to a sidewalk or safety island", "Run to the other side"],
+                answer: "Proceed to a sidewalk or safety island",
+                explanation: "TC 552.002(c) states a pedestrian who has partially crossed *shall proceed* to a sidewalk or safety island.",
+                reference: "Handout Page 230: TC 552.002(c)"
+            },
+            {
+                question: "A vehicle is stopped at a crosswalk to let a pedestrian cross. The vehicle behind it may:",
+                options: ["Pass the stopped vehicle on the left if safe", "Pass the stopped vehicle on the right shoulder", "Not pass the stopped vehicle", "Honk for the stopped vehicle to move"],
+                answer: "Not pass the stopped vehicle",
+                explanation: "TC 552.003(c) prohibits a vehicle from passing another vehicle that is stopped at a crosswalk to permit a pedestrian to cross.",
+                reference: "Handout Page 230: TC 552.003(c)"
+            },
+            {
+                question: "A pedestrian crossing a roadway at any point *other than* a crosswalk must:",
+                options: ["Yield the right-of-way to vehicles", "Be given the right-of-way by vehicles", "Cross at a 90-degree angle", "Only cross if a 'WALK' signal is visible"],
+                answer: "Yield the right-of-way to vehicles",
+                explanation: "TC 552.005(a) states that a pedestrian crossing outside a crosswalk shall yield the right-of-way to a vehicle on the highway.",
+                reference: "Handout Page 231: TC 552.005(a)"
+            },
+            {
+                question: "If a sidewalk is *not* available, where must a pedestrian walk?",
+                options: ["On the right side of the roadway, with traffic", "In the center of the roadway", "On the left side of the roadway or shoulder, facing traffic", "Pedestrians are not allowed on highways without sidewalks"],
+                answer: "On the left side of the roadway or shoulder, facing traffic",
+                explanation: "TC 552.006(b) requires a pedestrian (if no sidewalk) to walk on the left side of the roadway or the shoulder, facing oncoming traffic.",
+                reference: "Handout Page 231: TC 552.006(b)"
+            },
+            {
+                question: "A person *may* stand in a roadway to solicit a ride ('hitchhike').",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "TC 552.007(a) prohibits a person from standing in a roadway to solicit a ride, contribution, employment, or business (with an exception for authorized charitable contributions).",
+                reference: "Handout Page 232: TC 552.007(a)"
+            },
+            {
+                question: "A driver sees a child on a roadway. The driver must:",
+                options: ["Maintain speed and lane", "Honk to warn the child", "Exercise proper precaution", "Both B and C"],
+                answer: "Both B and C",
+                explanation: "TC 552.008(b) requires a driver to give warning by sounding the horn and to exercise proper precaution upon observing a child or confused/incapacitated person.",
+                reference: "Handout Page 232: TC 552.008(b)"
+            },
+            {
+                question: "A driver approaching a blind pedestrian with a white cane at a crosswalk must:",
+                options: ["Honk to let them know it's safe", "Proceed slowly around them", "Take necessary precautions to avoid injuring them", "Stop and wait for the pedestrian to wave them on"],
+                answer: "Take necessary precautions to avoid injuring them",
+                explanation: "TC 552.010(b) requires drivers to take all necessary precautions to avoid injuring or endangering a blind pedestrian with a cane or guide dog.",
+                reference: "Handout Page 232: TC 552.010(b)"
+            },
+            {
+                question: "How is an operator of a wheelchair or motorized mobility device treated under the law?",
+                options: ["As a vehicle", "As a bicycle", "As a pedestrian", "As a slow-moving vehicle"],
+                answer: "As a pedestrian",
+                explanation: "TC 552A.0101 states that an operator of a wheelchair or motorized mobility device is considered to be a pedestrian.",
+                reference: "Handout Page 233: TC 552A.0101"
+            },
+            {
+                question: "Who is responsible for removing glass or injurious substances from a highway after a crash?",
+                options: ["The peace officer", "The fire department", "The person who removes the wrecked or damaged vehicle", "The driver of the vehicle"],
+                answer: "The person who removes the wrecked or damaged vehicle",
+                explanation: "TC 600.001(b) places this responsibility on the person who removes the vehicle, which is typically the tow truck operator.",
+                reference: "Handout Page 233: TC 600.001(b)"
+            },
+            {
+                question: "Which of the following is *NOT* an acceptable form of financial responsibility under Chapter 601?",
+                options: ["A motor vehicle liability insurance policy", "A deposit of $55,000 cash with the state comptroller", "A valid, unexpired credit card", "A certificate of self-insurance"],
+                answer: "A valid, unexpired credit card",
+                explanation: "The five acceptable forms are: insurance policy, surety bond, deposit with comptroller, deposit with county judge, or self-insurance. A credit card is not one of them.",
+                reference: "Handout Page 234: TC 601.051"
+            },
+            {
+                question: "Which of the following vehicles is *EXEMPT* from financial responsibility (insurance) requirements?",
+                options: ["A motorcycle", "A light truck", "A vehicle with 'Antique Auto' license plates", "A moped"],
+                answer: "A vehicle with 'Antique Auto' license plates",
+                explanation: "TC 601.052(1) provides an exemption for antique vehicles (at least 25 years old) used only for exhibitions, parades, etc.",
+                reference: "Handout Page 234: TC 601.052(1)"
+            },
+            {
+                question: "A person can legally show proof of insurance to a peace officer via an image on their cell phone.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 601.053(a)(2-a) specifically allows evidence of financial responsibility to be an image displayed on a wireless communication device.",
+                reference: "Handout Page 235: TC 601.053(a)(2-a)"
+            },
+            {
+                question: "To qualify for self-insurance (TC 601.124), a person must have at least how many vehicles registered in their name?",
+                options: ["10", "15", "25", "50"],
+                answer: "25",
+                explanation: "TC 601.124(a) states a person must have *more than 25* motor vehicles registered in their name to apply for self-insurance.",
+                reference: "Handout Page 237: TC 601.124(a)"
+            },
+            {
+                question: "What is the penalty for a *first* offense of operating a motor vehicle without financial responsibility (TC 601.191)?",
+                options: ["A fine of $175 - $350", "A fine of $350 - $1,000", "Class B Misdemeanor", "30 days license suspension"],
+                answer: "A fine of $175 - $350",
+                explanation: "TC 601.191(b) sets the penalty for a first offense as a misdemeanor with a fine of not less than $175 or more than $350.",
+                reference: "Handout Page 237: TC 601.191(b)"
+            },
+            {
+                question: "What is the penalty for a *second or subsequent* offense of operating without financial responsibility?",
+                options: ["A fine of $175 - $350", "A fine of $350 - $1,000", "Class B Misdemeanor", "90 days license suspension"],
+                answer: "A fine of $350 - $1,000",
+                explanation: "TC 601.191(c) enhances the penalty for a subsequent conviction to a fine of not less than $350 or more than $1,000.",
+                reference: "Handout Page 237: TC 601.191(c)"
+            },
+            {
+                question: "It is a defense to prosecution for 'No Insurance' if the person was operating a vehicle they *did not own* for the *sole purpose of repair*.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 601.194 provides a specific defense for a person (like a mechanic) who was operating the vehicle for the sole purpose of maintenance or repair.",
+                reference: "Handout Page 237: TC 601.194"
+            },
+            {
+                question: "A copy of the registration receipt must be carried on which of the following vehicles (TC 621.002)?",
+                options: ["All passenger cars", "A commercial motor vehicle or truck-tractor", "Motorcycles", "All of the above"],
+                answer: "A commercial motor vehicle or truck-tractor",
+                explanation: "TC 621.002 requires the registration receipt to be carried on a commercial motor vehicle, truck-tractor, trailer, or semitrailer.",
+                reference: "Handout Page 238: TC 621.002"
+            },
+            {
+                question: "What is the maximum single axle weight for a vehicle on a public highway (TC 621.101)?",
+                options: ["18,000 pounds", "20,000 pounds", "25,000 pounds", "34,000 pounds"],
+                answer: "20,000 pounds",
+                explanation: "TC 621.101(a)(1) sets the maximum single axle weight at 20,000 pounds.",
+                reference: "Handout Page 239: TC 621.101(a)(1)"
+            },
+            {
+                question: "What is the maximum tandem axle weight for a vehicle on a public highway (TC 621.101)?",
+                options: ["20,000 pounds", "30,000 pounds", "34,000 pounds", "40,000 pounds"],
+                answer: "34,000 pounds",
+                explanation: "TC 621.101(a)(2) sets the maximum tandem axle weight at 34,000 pounds.",
+                reference: "Handout Page 239: TC 621.101(a)(2)"
+            },
+            {
+                question: "What is the maximum overall gross weight for a vehicle or combination on a public highway (TC 621.101)?",
+                options: ["70,000 pounds", "75,000 pounds", "80,000 pounds", "84,000 pounds"],
+                answer: "80,000 pounds",
+                explanation: "TC 621.101(b) states the overall gross weight may not be heavier than 80,000 pounds (though it may be less based on the bridge formula).",
+                reference: "Handout Page 239: TC 621.101(b)"
+            },
+            {
+                question: "What is the maximum width for a *passenger vehicle* and its load (TC 621.201)?",
+                options: ["8 feet (96 inches)", "8.5 feet (102 inches)", "9 feet (108 inches)", "No limit"],
+                answer: "8 feet (96 inches)",
+                explanation: "TC 621.201(b) sets the maximum width for a passenger vehicle and its load at 8 feet (96 inches).",
+                reference: "Handout Page 239: TC 621.201(b)"
+            },
+            {
+                question: "What is the maximum width for a *commercial motor vehicle* (not a passenger vehicle) (TC 621.201)?",
+                options: ["8 feet (96 inches)", "8.5 feet (102 inches)", "9 feet (108 inches)", "No limit"],
+                answer: "8.5 feet (102 inches)",
+                explanation: "TC 621.201(a) sets the maximum width for other vehicles (like trucks, trailers) at 102 inches, excluding safety devices.",
+                reference: "Handout Page 239: TC 621.201(a)"
+            },
+            {
+                question: "A load on a passenger vehicle may not extend more than ___ inches beyond the left fender or ___ inches beyond the right fender.",
+                options: ["0, 6", "3, 6", "6, 6", "12, 12"],
+                answer: "3, 6",
+                explanation: "TC 621.201(c) limits the load extension on a passenger vehicle to 3 inches on the left and 6 inches on the right (and must still be within the 96-inch total width).",
+                reference: "Handout Page 239: TC 621.201(c)"
+            },
+            {
+                question: "What is the maximum length of a *motor vehicle other than a truck-tractor* (TC 621.203)?",
+                options: ["35 feet", "40 feet", "45 feet", "50 feet"],
+                answer: "45 feet",
+                explanation: "TC 621.203 states a motor vehicle (like a bus or straight truck) may not be longer than 45 feet. Truck-tractors are exempt.",
+                reference: "Handout Page 239: TC 621.203"
+            },
+            {
+                question: "What is the maximum length of a *semitrailer* operated in a truck-tractor and semitrailer combination (TC 621.204)?",
+                options: ["48 feet", "53 feet", "57 feet", "59 feet"],
+                answer: "59 feet",
+                explanation: "TC 621.204(a) limits a single semitrailer in a combination to 59 feet.",
+                reference: "Handout Page 240: TC 621.204(a)"
+            },
+            {
+                question: "What is the maximum length of *each* trailer in a truck-tractor, semitrailer, and trailer (doubles) combination?",
+                options: ["28.5 feet", "30 feet", "40 feet", "53 feet"],
+                answer: "28.5 feet",
+                explanation: "TC 621.204(b) limits each semitrailer or trailer in a doubles combination to 28.5 feet.",
+                reference: "Handout Page 240: TC 621.204(b)"
+            },
+            {
+                question: "A load may not extend more than ___ feet beyond the front of a vehicle or ___ feet beyond the rear.",
+                options: ["0, 3", "3, 3", "3, 4", "4, 4"],
+                answer: "3, 4",
+                explanation: "TC 621.206(a) sets the maximum load extension limits at 3 feet beyond the front and 4 feet beyond the rear.",
+                reference: "Handout Page 241: TC 621.206(a)"
+            },
+            {
+                question: "What is the maximum height for a vehicle and its load (TC 621.207)?",
+                options: ["13 feet, 6 inches", "14 feet", "14 feet, 6 inches", "15 feet"],
+                answer: "14 feet",
+                explanation: "TC 621.207(a) sets the maximum vehicle height at 14 feet.",
+                reference: "Handout Page 242: TC 621.207(a)"
+            },
+            {
+                question: "A vehicle higher than ___ must ensure it can pass under all structures without striking them.",
+                options: ["13 feet, 6 inches", "14 feet", "14 feet, 6 inches", "15 feet"],
+                answer: "13 feet, 6 inches",
+                explanation: "TC 621.207(b) places an affirmative duty on the operator of a vehicle *higher than 13 feet 6 inches* to ensure it has vertical clearance.",
+                reference: "Handout Page 242: TC 621.207(b)"
+            },
+            {
+                question: "Which of the following vehicles is *NOT* exempt from the 102-inch width limitation?",
+                options: ["A fire department vehicle", "A farm tractor traveling during daylight", "An implement of husbandry traveling during daylight", "A passenger car with a 10-inch-wide load on the right side"],
+                answer: "A passenger car with a 10-inch-wide load on the right side",
+                explanation: "TC 622.901 exempts fire vehicles, farm tractors, and implements (during daylight). TC 621.201(c) limits a passenger car's load to 6 inches on the right and 96 inches total width.",
+                reference: "Handout Page 239 & 243: TC 621.201(c), 622.901"
+            },
+            {
+                question: "A motorcycle operator *21 years of age or older* is exempt from wearing a helmet if they:",
+                options: ["Are traveling under 30 MPH", "Have completed a motorcycle safety course OR have health insurance", "Have been riding for at least 5 years", "Are operating a motorcycle with a 250cc engine or less"],
+                answer: "Have completed a motorcycle safety course OR have health insurance",
+                explanation: "TC 661.003(c) provides an exception for riders 21+ if they meet *either* the safety course requirement *or* the health insurance requirement.",
+                reference: "Handout Page 245: TC 661.003(c)"
+            },
+            {
+                question: "A motorcycle operator who is 20 years old is exempt from wearing a helmet if they have health insurance.",
+                options: ["True", "False"],
+                answer: "False",
+                explanation: "The exception in TC 661.003(c) *only* applies to persons who are 21 years of age or older. A 20-year-old must wear a helmet.",
+                reference: "Handout Page 245: TC 661.003(c)"
+            },
+            {
+                question: "A person with a disability is exempt from paying a fee at a parking meter if their vehicle displays a disabled placard or plate.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 681.006(b) provides this exemption from fees imposed by a governmental unit for parking at a meter.",
+                reference: "Handout Page 249: TC 681.006(b)"
+            },
+            {
+                question: "As of 1/1/22, a 'Disabled Veteran' license plate only grants disabled parking privileges if:",
+                options: ["The veteran is 100% disabled", "The vehicle is a passenger car", "The plate *also* bears the International Symbol of Access (wheelchair logo)", "All DV plates grant these privileges"],
+                answer: "The plate *also* bears the International Symbol of Access (wheelchair logo)",
+                explanation: "TC 681.008 was amended to require DV plates to also have the international symbol of access to be used for disabled parking.",
+                reference: "Handout Page 249: TC 681.008"
+            },
+            {
+                question: "A person commits an offense if they lend their disabled parking placard to a friend, who then uses it to park in a disabled space.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 681.011(d) makes it an offense to *lend* a placard that is then used in violation of the chapter.",
+                reference: "Handout Page 250: TC 681.011(d)"
+            },
+            {
+                question: "A peace officer *shall seize* a disabled parking placard if they believe what offense has occurred?",
+                options: ["The placard is expired", "The vehicle is parked in a fire lane", "The placard is being used by someone who is not disabled (and not transporting the disabled person)", "The placard is faded"],
+                answer: "The placard is being used by someone who is not disabled (and not transporting the disabled person)",
+                explanation: "TC 681.012 requires an officer to seize a placard if they have probable cause to believe an offense under 681.011(a) (improper use) or (d) (improper lending) has occurred.",
+                reference: "Handout Page 250: TC 681.012"
+            },
+            {
+                question: "A vehicle is considered 'abandoned' if it has been left unattended on a public highway right-of-way for more than:",
+                options: ["12 hours", "24 hours", "48 hours", "72 hours"],
+                answer: "48 hours",
+                explanation: "TC 683.002(4) defines a vehicle as abandoned if left unattended on a highway ROW for more than 48 hours (or 24 hours on a turnpike).",
+                reference: "Handout Page 251: TC 683.002"
+            },
+            {
+                question: "After taking an abandoned vehicle into custody, a law enforcement agency must send notice to the owner/lienholder within:",
+                options: ["24 hours", "48 hours", "5 days", "10 days"],
+                answer: "10 days",
+                explanation: "TC 683.012(b) requires this notice to be sent no later than the 10th day after taking the vehicle into custody.",
+                reference: "Handout Page 251: TC 683.012(b)"
+            },
+            {
+                question: "The Driver Responsibility Program (DRP) which assessed surcharges was repealed in:",
+                options: ["2003", "2010", "2019", "It is still active"],
+                answer: "2019",
+                explanation: "The DRP (Chapter 708) was repealed as of September 1, 2019.",
+                reference: "Handout Page 252: TC 708"
+            },
+            {
+                question: "Implied Consent (Chapter 724) applies to a person operating a motor vehicle or a watercraft with an engine of:",
+                options: ["Any size", "25 horsepower or more", "50 horsepower or more", "100 horsepower or more"],
+                answer: "50 horsepower or more",
+                explanation: "TC 724.002(b) specifies that for watercraft, Implied Consent only applies to an engine with a manufacturer's rating of 50 horsepower or above.",
+                reference: "Handout Page 252: TC 724.002(b)"
+            },
+            {
+                question: "A person arrested for DWI is 'deemed to have consented' to providing a blood or breath specimen. This is known as:",
+                options: ["Express Consent", "Implied Consent", "Mandatory Consent", "Informed Consent"],
+                answer: "Implied Consent",
+                explanation: "TC 724.011 establishes the principle of 'Implied Consent'—by operating a motor vehicle in Texas, you are deemed to have consented to a specimen if arrested for DWI.",
+                reference: "Handout Page 252: TC 724.011"
+            },
+            {
+                question: "An officer *SHALL* require a *blood* specimen from a DWI suspect who refuses, if the crash resulted in:",
+                options: ["Any injury", "Serious Bodily Injury or Death", "Damage over $1,000", "The suspect being rude"],
+                answer: "Serious Bodily Injury or Death",
+                explanation: "TC 724.012(a-1) makes a *blood* specimen mandatory in refusal cases involving a crash with death or SBI.",
+                reference: "Handout Page 253: TC 724.012(a-1)"
+            },
+            {
+                question: "An officer *SHALL* require a blood or breath specimen (mandatory specimen) from a DWI suspect who refuses, if:",
+                options: ["The person has two or more previous DWI convictions", "The person had a child passenger under 15", "The crash caused bodily injury requiring transport to a hospital", "All of the above"],
+                answer: "All of the above",
+                explanation: "TC 724.012(b) lists all of these as triggers for a mandatory (non-SBI/death) blood or breath specimen.",
+                reference: "Handout Page 253: TC 724.012(b)"
+            },
+            {
+                question: "If an officer has grounds for a *mandatory* specimen (e.g., DWI w/ child) and the suspect refuses, the officer must:",
+                options: ["Respect the refusal and let them go", "Respect the refusal but suspend their license", "Obtain a warrant (or have exigent circumstances) to take the specimen", "Take the specimen by force without a warrant"],
+                answer: "Obtain a warrant (or have exigent circumstances) to take the specimen",
+                explanation: "Per TC 724.012(e) and case law (McNeely, Villarreal), a 'mandatory specimen' is not automatic. The officer must obtain a warrant or prove exigent circumstances to forcibly take the specimen.",
+                reference: "Handout Page 253: TC 724.012(e)"
+            },
+            {
+                question: "A person who is dead or unconscious is considered to *not* have withdrawn their implied consent.",
+                options: ["True", "False"],
+                answer: "True",
+                explanation: "TC 724.014(a) states this. However, case law (Ruiz v. State) determined that taking blood from an unconscious person without a warrant is a 4th Amendment violation.",
+                reference: "Handout Page 255: TC 724.014(a)"
+            },
+            {
+                question: "Which of the following persons is *NOT* authorized to take a blood specimen at the request of a peace officer?",
+                options: ["A physician", "A registered professional nurse", "A licensed mortician", "An authorized EMT-Paramedic"],
+                answer: "A licensed mortician",
+                explanation: "TC 724.017 lists who may draw blood: physician, qualified tech, RN, LVN, or authorized EMT-I/EMT-P. A mortician is *not* on this list (but is mentioned in the problematic TC 724.014 for deceased persons).",
+                reference: "Handout Page 257: TC 724.017"
+            },
+            {
+                question: "A person who gives a blood/breath specimen has a right to request an additional analysis by a person of their choosing within ___ hours of the arrest.",
+                options: ["One", "Two", "Four", "24"],
+                answer: "Two",
+                explanation: "TC 724.019 allows the arrested person to have an additional specimen taken by their own chosen qualified person, within a reasonable time *not to exceed two hours* after the arrest.",
+                reference: "Handout Page 257: TC 724.019"
+            },
+            {
+                question: "After a DWI suspect *refuses* a specimen, the officer must make a written report (DIC-23) to the director of DPS within:",
+                options: ["24 hours", "48 hours", "5 business days", "10 days"],
+                answer: "5 business days",
+                explanation: "TC 724.032(b) requires the officer to make this written report of the refusal within 5 business days after the date of the arrest.",
+                reference: "Handout Page 258: TC 724.032(b)"
+            },
+            {
+                question: "Under HSC 365.011, which of the following is *NOT* considered 'Litter'?",
+                options: ["Animal and vegetable waste from a restaurant", "Paper, rags, cartons, and wood", "Glass, crockery, and tin cans", "Sewage or body wastes"],
+                answer: "Sewage or body wastes",
+                explanation: "The definition of 'Decayable Waste' in HSC 365.011(6)(A) explicitly *excludes* sewage, body wastes, or industrial by-products.",
+                reference: "Handout Page 259: HSC 365.011(6)"
+            },
+            {
+                question: "A person disposes of 10 pounds of litter (more than 5 lbs, less than 500 lbs) on a public highway. What is the offense?",
+                options: ["Class C Misdemeanor", "Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony"],
+                answer: "Class B Misdemeanor",
+                explanation: "HSC 365.012(d) sets the penalty. Less than 5 lbs is Class C. More than 5 lbs but less than 500 lbs is a Class B Misdemeanor.",
+                reference: "Handout Page 260: HSC 365.012(d)"
+            },
+            {
+                question: "A person disposes of 1,000 pounds or more of litter. What is the offense?",
+                options: ["Class B Misdemeanor", "Class A Misdemeanor", "State Jail Felony", "3rd Degree Felony"],
+                answer: "State Jail Felony",
+                explanation: "HSC 365.012(d) makes illegal dumping a State Jail Felony if the weight is 1,000 pounds or more.",
+                reference: "Handout Page 260: HSC 365.012(d)"
+            },
+            {
+                question: "A person flicks a *lighted* cigarette out their window, and it ignites a grass fire. What is the offense?",
+                options: ["Class C Misdemeanor (Littering)", "Class B Misdemeanor (Discarding Lighted Material)", "Class A Misdemeanor (Arson)", "No offense"],
+                answer: "Class B Misdemeanor (Discarding Lighted Material)",
+                explanation: "HSC 365.012(a-1) makes it a Class B Misdemeanor to discard lighted litter *if a fire is ignited as a result*.",
+                reference: "Handout Page 260: HSC 365.012(a-1)"
+            }
+        ];
+        
+        // --- State Variables ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let userAnswers = [];
+        let originalOrder = [];
+        let timerInterval;
+        let secondsElapsed = 0;
+
+        // --- Functions ---
+        function startQuiz() {
+            startScreen.classList.add('hidden');
+            resultScreen.classList.add('hidden');
+            reviewSection.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            
+            // Store original order for review, then shuffle
+            originalOrder = [...quizData];
+            quizData.sort(() => Math.random() - 0.5);
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            userAnswers = [];
+            
+            progressBar.style.width = '0%';
+            startTimer();
+            showQuestion();
+            updateScoreCounter();
+        }
+
+        function showQuestion() {
+            resetState();
+            const currentQuestion = quizData[currentQuestionIndex];
+            questionText.innerText = currentQuestion.question;
+            questionCounter.innerText = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+            
+            // Update progress bar
+            const progress = ((currentQuestionIndex + 1) / quizData.length) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            // Create and display options
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.innerText = option;
+                button.classList.add('w-full', 'text-left', 'p-4', 'border', 'rounded-lg', 'transition-colors', 'duration-200', 'hover:bg-indigo-100', 'hover:border-indigo-400');
+                button.addEventListener('click', () => selectAnswer(button, option));
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function resetState() {
+            nextBtn.disabled = true;
+            nextBtn.innerText = 'Next Question';
+            while (optionsContainer.firstChild) {
+                optionsContainer.removeChild(optionsContainer.firstChild);
+            }
+        }
+
+        function selectAnswer(button, selectedOption) {
+            const currentQuestion = quizData[currentQuestionIndex];
+            const correct = selectedOption === currentQuestion.answer;
+
+            // Find the original index of the current question for storing the answer
+            const originalIndex = originalOrder.findIndex(q => q.question === currentQuestion.question);
+            userAnswers[originalIndex] = {
+                question: currentQuestion.question,
+                selected: selectedOption,
+                correctAnswer: currentQuestion.answer,
+                isCorrect: correct,
+                explanation: currentQuestion.explanation,
+                reference: currentQuestion.reference
+            };
+
+            if (correct) {
+                score++;
+            }
+            scoreCounter.innerText = `Score: ${score} / ${currentQuestionIndex + 1}`;
+            
+            Array.from(optionsContainer.children).forEach(child => {
+                child.disabled = true;
+                if (child.innerText === currentQuestion.answer) {
+                    child.classList.add('correct', 'font-bold');
+                } else if (child.innerText === selectedOption) {
+                    child.classList.add('incorrect', 'font-bold');
+                }
+            });
+
+            const explanationEl = document.createElement('div');
+            explanationEl.innerHTML = `
+                <p class="font-semibold mt-4">Explanation:</p>
+                <p>${currentQuestion.explanation}</p>
+                <div class="mt-2 pt-2 border-t border-gray-300">
+                    <p class="font-semibold">Reference:</p>
+                    <p class="text-sm">${currentQuestion.reference}</p>
+                </div>
+            `;
+            explanationEl.classList.add('explanation', 'p-4', 'rounded-lg', 'mt-4');
+            optionsContainer.appendChild(explanationEl);
+
+            nextBtn.disabled = false;
+            if (currentQuestionIndex === quizData.length - 1) {
+                nextBtn.innerText = 'Show Results';
+            }
+        }
+
+        function handleNextButton() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            
+            stopTimer();
+            finalScore.innerText = `${score} / ${quizData.length}`;
+            totalTimeElement.innerText = `Total Time: ${secondsElapsed}s`;
+            
+            const percentage = (score / quizData.length) * 100;
+            if (percentage >= 80) {
+                scoreMessage.innerText = "Excellent work! You have a strong grasp of the material.";
+            } else if (percentage >= 60) {
+                scoreMessage.innerText = "Good job! A little more review could be beneficial.";
+            } else {
+                scoreMessage.innerText = "It might be a good idea to review the handout again. Keep trying!";
+            }
+        }
+        
+        function updateScoreCounter() {
+             scoreCounter.innerText = `Score: ${score} / ${currentQuestionIndex}`;
+        }
+
+        function startTimer() {
+            secondsElapsed = 0;
+            timerElement.innerText = 'Time: 0s';
+            clearInterval(timerInterval); // Clear any existing timer
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                timerElement.innerText = `Time: ${secondsElapsed}s`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function showReview() {
+            reviewContainer.innerHTML = ''; 
+            
+            // Use the userAnswers array which is now indexed correctly
+            userAnswers.forEach((answer, index) => {
+                if (!answer) return; // Skip if a question was somehow not answered
+
+                const card = document.createElement('div');
+                card.classList.add('bg-white', 'p-6', 'rounded-xl', 'shadow-md');
+                
+                const isCorrect = answer.isCorrect;
+                const resultClass = isCorrect ? 'text-green-600' : 'text-red-600';
+                const resultText = isCorrect ? 'Correct' : 'Incorrect';
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="text-lg font-semibold text-gray-800">Question ${index + 1}</h3>
+                        <span class="font-bold ${resultClass}">${resultText}</span>
+                    </div>
+                    <p class="font-medium text-gray-700 mb-4">${answer.question}</p>
+                    <div class="space-y-2 text-sm">
+                        <p><strong>Your Answer:</strong> <span class="${!isCorrect ? 'text-red-600' : ''}">${answer.selected}</span></p>
+                        <p><strong>Correct Answer:</strong> <span class="text-green-700">${answer.correctAnswer}</span></p>
+                        <div class="explanation p-3 rounded-md mt-3">
+                            <p class="font-semibold">Explanation:</p>
+                            <p>${answer.explanation}</p>
+                            <div class="mt-2 pt-2 border-t border-gray-300">
+                                <p class="font-semibold">Reference:</p>
+                                <p class="text-sm">${answer.reference}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                reviewContainer.appendChild(card);
+            });
+            reviewSection.classList.remove('hidden');
+            reviewSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startQuiz);
+        nextBtn.addEventListener('click', handleNextButton);
+        restartBtn.addEventListener('click', startQuiz);
+        reviewBtn.addEventListener('click', showReview);
+
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
