@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCOLE Basic Peace Officer Study Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f9;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .question-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s;
+        }
+        .question-card:hover {
+            transform: translateY(-2px);
+        }
+        .answer-btn {
+            text-align: left;
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+        .correct-answer {
+            background-color: #d1fae5; /* Tailwind green-100 */
+            border-color: #10b981; /* Tailwind green-500 */
+            font-weight: 600;
+        }
+        .incorrect-answer {
+            background-color: #fee2e2; /* Tailwind red-100 */
+            border-color: #ef4444; /* Tailwind red-500 */
+        }
+        /* Custom scrollbar for better aesthetics */
+        .overflow-y-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .overflow-y-scroll::-webkit-scrollbar-thumb {
+            background-color: #a0aec0; /* Tailwind gray-400 */
+            border-radius: 4px;
+        }
+        .tab-button.active {
+            border-bottom: 4px solid #3b82f6; /* Tailwind blue-500 */
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold text-center text-blue-800 mb-6">TCOLE Practice Exam Study Tool</h1>
+        <p class="text-center text-gray-600 mb-8">Questions sourced from your TEEX results. Verified answers and TCOLE/Statute references are provided.</p>
+
+        <div class="flex border-b border-gray-300 mb-6">
+            <button id="tab-study" class="tab-button active flex-1 p-3 text-lg text-gray-700 hover:bg-gray-100 rounded-t-lg transition-colors" onclick="showTab('study')">Study Mode</button>
+            <button id="tab-exam" class="tab-button flex-1 p-3 text-lg text-gray-700 hover:bg-gray-100 rounded-t-lg transition-colors" onclick="showTab('exam')">Practice Exam</button>
+        </div>
+
+        <!-- Study Mode Tab -->
+        <div id="study-mode" class="space-y-6">
+            <p class="text-sm text-gray-500 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
+                Study Mode shows the verified correct answer and its statutory reference immediately for focused learning.
+            </p>
+            <div id="study-questions" class="space-y-8">
+                <!-- Questions will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Practice Exam Tab -->
+        <div id="exam-mode" class="hidden">
+            <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400 mb-6 flex justify-between items-center">
+                <span id="exam-timer" class="text-lg font-semibold text-yellow-700">Time: Not Started</span>
+                <span id="exam-score" class="text-lg font-semibold text-yellow-700">Score: 0 / 0</span>
+            </div>
+
+            <div id="exam-questions" class="space-y-8">
+                <!-- Exam questions will be dynamically inserted here -->
+            </div>
+
+            <button id="submit-exam-btn" onclick="submitExam()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg mt-8 shadow-lg transition-colors">
+                Submit Exam & View Results
+            </button>
+
+            <div id="exam-results" class="hidden mt-8 p-6 bg-white rounded-xl shadow-lg border border-green-200">
+                <h2 class="text-2xl font-bold text-green-700 mb-4">Your Exam Results</h2>
+                <div id="final-score" class="text-xl font-bold mb-4"></div>
+                <div id="exam-review" class="space-y-4 max-h-96 overflow-y-scroll p-2">
+                    <!-- Detailed review will go here -->
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-gray-500 text-sm border-t pt-4">
+            TCOLE Study Tool - Latest Verification
+        </footer>
+    </div>
+
+    <script>
+        // --- Data Bank ---
+        const questions = [
+            {
+                q: "It is essential that you not only gather all of the available relevant information on a topic, but that you also strive to __________ of the information.",
+                options: ["To achieve proper perspective", "Ensure the reliability of an informant", "Establish the Validity", "None of the above"],
+                correct: "Establish the Validity",
+                ref: "TCOLE Ethical Conduct and Procedural Justice. The goal is to ensure the information is accurate and dependable.",
+                id: 1
+            },
+            {
+                q: "In physical arrest, the police role is essentially aggressive.",
+                options: ["True", "False"],
+                correct: "False",
+                ref: "TCOLE Use of Force. The role of the officer is defensive and to maintain control, not aggressive.",
+                id: 2
+            },
+            {
+                q: "What Chapter of the Texas Administrative Code deals with Administration?",
+                options: ["211", "215", "217", "218"],
+                correct: "211",
+                ref: "37 TAC, Part 7 (TCOLE), Chapter 211 (Administration).",
+                id: 3
+            },
+            {
+                q: "__________ is needed when conditions or circumstances warrant a high level of awareness, departments should gather information and provide advanced warning for civil unrest.",
+                options: ["Crowd assessment", "Crowd dispersal", "Crowd management", "Crowd diffusion"],
+                correct: "Crowd management",
+                ref: "TCOLE Crowd Control/Management. This refers to the proactive planning and control of crowds.",
+                id: 4
+            },
+            {
+                q: "All Attachment for a Person may be served by __________.",
+                options: ["a Sheriff", "a Constable", "Any Peace Officer", "A or B", "None of the above"],
+                correct: "A or B",
+                ref: "Texas Rules of Civil Procedure (TRCP) Rule 15 and 103 (general service). Attachment for a Person is a civil process typically served by Sheriffs or Constables.",
+                id: 5
+            },
+            {
+                q: "Blood stained evidence, such as clothing, should be stored in plastic bags and sealed while still wet so as to prevent spoilage of the evidence.",
+                options: ["True", "False"],
+                correct: "False",
+                ref: "TCOLE Crime Scene Investigation. Biological evidence must be air-dried and stored in paper bags or cardboard containers to prevent mold and degradation.",
+                id: 6
+            },
+            {
+                q: "The person servicing the process can be __________ for failure to execute or return the process.",
+                options: ["sentenced to prison", "held accountable for a felony", "held in contempt of court", "all the above"],
+                correct: "held in contempt of court",
+                ref: "TRCP Rule 15. A clerk, sheriff, or other officer who neglects or refuses to perform a duty may be punished for contempt of court.",
+                id: 7
+            },
+            {
+                q: "In the traditional police service model, most of the workload of patrol officers and detectives consists of handling crimes that have already been committed, disturbances in progress, and traffic violations describes __________.",
+                options: ["incident driven", "reactive response", "citizen and employee expectations", "use of the criminal justice system"],
+                correct: "incident driven",
+                ref: "TCOLE Community Policing. The traditional model focuses on responding to calls for service (incidents) rather than proactive problem-solving.",
+                id: 8
+            },
+            {
+                q: "What Chapter of the Texas Administrative Code deals with Enforcement?",
+                options: ["219", "221", "223", "225"],
+                correct: "223",
+                ref: "37 TAC, Part 7 (TCOLE), Chapter 223 (Enforcement).",
+                id: 9
+            },
+            {
+                q: "__________ is a sign, signal, marking, or device that is: consistent with this subtitle; placed or erected by a public body or officer having jurisdiction; and used to regulate, warn, or guide traffic.",
+                options: ["Official traffic-control device", "Traffic signal", "Stop sign", "Railroad sign or signal"],
+                correct: "Official traffic-control device",
+                ref: "Texas Transportation Code (TRC) Sec. 541.304.",
+                id: 10
+            },
+            {
+                q: "Older adults are __________ to develop symptoms than are younger ones in regards to PTSD.",
+                options: ["More likely", "Less likely", "Equally as likely", "Not likely"],
+                correct: "Less likely",
+                ref: "TCOLE Crisis Intervention. Older adults often have more life experience and better coping mechanisms, potentially making them less likely to develop PTSD, though they may still be traumatized.",
+                id: 11
+            },
+            {
+                q: "Exposure via cut, abrasion, biological pest insect are examples of what kind of exposure?",
+                options: ["Injection", "Ingestion", "Absorption", "Inhalation"],
+                correct: "Injection",
+                ref: "TCOLE Hazardous Materials. Injection involves piercing the skin barrier (cuts, bites, etc.).",
+                id: 12
+            },
+            {
+                q: "The good faith defense for an officer is enhanced when following the __________ of the department.",
+                options: ["verbal standards", "implied policies", "fair labor standards", "written directives"],
+                correct: "written directives",
+                ref: "TCOLE Use of Force. Documented, written policy provides the strongest defense in civil litigation (e.g., *Graham v. Connor* analysis).",
+                id: 13
+            },
+            {
+                q: "What Amendment gives rise to the reasonableness factor in determining the legality of a use of force?",
+                options: ["1st", "4th", "5th", "6th", "8th"],
+                correct: "4th",
+                ref: "U.S. Constitution, 4th Amendment. The Supreme Court established the 'objective reasonableness' standard for use of force against a free citizen in *Graham v. Connor* (1989).",
+                id: 14
+            },
+            {
+                q: "According to the Code of Criminal Procedure, if a __________ from another state comes into or passes through his state under an order directing him to attend and testify in this or another state, he is not subject to arrest or the service of civil or criminal process because of any act committed prior to his arrival in this state under the order.",
+                options: ["defendant", "legislator", "witness", "officer"],
+                correct: "witness",
+                ref: "Texas Code of Criminal Procedure (CCP) Art. 24.29 (Witness from Without State Exemption from Arrest or Service of Process).",
+                id: 15
+            },
+            {
+                q: "Field notes are used for __________.",
+                options: ["Preparing reports", "Making personal remarks", "Sketching", "Writing full reports"],
+                correct: "Preparing reports",
+                ref: "TCOLE Report Writing. Field notes are the primary source data used to accurately prepare incident reports.",
+                id: 16
+            },
+            {
+                q: "Officers build public confidence by __________.",
+                options: ["Treating people with dignity and respect", "Making decisions fairly, based on facts, not illegitimate factors such as race", "Giving people \"voice,\" a chance to tell their side of the story", "Acting in a way that encourages community members to believe that they will be treated with goodwill in the future", "All of the Above"],
+                correct: "All of the Above",
+                ref: "TCOLE Procedural Justice. These are the core principles that enhance legitimacy and public trust.",
+                id: 17
+            },
+            {
+                q: "Which of the following is a risk factor in arrest situations?",
+                options: ["Suspect is off balance", "Suspect is sober", "Spectator support for the subject", "Element of surprise"],
+                correct: "Spectator support for the subject",
+                ref: "TCOLE Arrest Procedures. Spectator involvement can escalate the situation and encourage resistance.",
+                id: 18
+            },
+            {
+                q: "Xanax, Valium, and Buspar are examples of __________.",
+                options: ["Antidepressants", "Mood stabilizers", "Anti-anxiety drugs", "Anti-psychotics"],
+                correct: "Anti-anxiety drugs",
+                ref: "TCOLE Crisis Intervention/Mental Health. These are commonly prescribed anxiolytics.",
+                id: 19
+            },
+            {
+                q: "__________ includes nonprofit corporations, professional associations created pursuant to statute, and joint stock companies.",
+                options: ["Corporate taxes", "Operation", "Businesses", "Corporation"],
+                correct: "Corporation",
+                ref: "Texas Penal Code (PC) Sec. 1.07(a)(19).",
+                id: 20
+            },
+            {
+                q: "Critical incident stress is __________.",
+                options: ["the same as PTSD", "every day event stress", "wide spread stressors", "incident specific"],
+                correct: "incident specific",
+                ref: "TCOLE Wellness. It refers to a stress reaction that is temporary and specific to a traumatic event, unlike chronic stress or PTSD (which is a delayed disorder).",
+                id: 21
+            },
+            {
+                q: "In U.S. v. Carroll, the Supreme Court upheld an officer's right to search a vehicle's trunk when the officers have __________.",
+                options: ["a search warrant", "reasonable suspicion", "probable cause", "inventory privilege"],
+                correct: "probable cause",
+                ref: "U.S. v. Carroll (1925) established the 'automobile exception,' allowing a warrantless search of a vehicle if there is probable cause to believe evidence or contraband is present.",
+                id: 22
+            },
+            {
+                q: "But that if the person submits to the taking of the specimen and an analysis of the specimen shows that the person had an alcohol concentration less than the level specified by Chapter 49, Penal Code, the person may be subject to criminal penalties __________ severe than those provided under that chapter.",
+                options: ["Less", "More", "Equally", "None of these"],
+                correct: "Less",
+                ref: "TRC Sec. 724.015. This relates to a lesser charge such as Public Intoxication or possibly no charge, meaning the penalties would be less severe than DWI (Chapter 49, PC).",
+                id: 23
+            },
+            {
+                q: "Unless otherwise stated, a person found guilty of violating the Transportation Code is charged with __________.",
+                options: ["a class A misdemeanor", "a class B misdemeanor", "a class C misdemeanor", "none of the above"],
+                correct: "a class C misdemeanor",
+                ref: "TRC Sec. 542.401 (General Penalty). Unless otherwise specified, an offense under the TRC is a Class C misdemeanor.",
+                id: 24
+            },
+            {
+                q: "In a work zone, __________ space where responders will be conducting various activities.",
+                options: ["Activity area", "Buffer space", "Work area", "Transition area"],
+                correct: "Activity area",
+                ref: "TCOLE Traffic Direction. The Activity area is the designated space for operational tasks.",
+                id: 25
+            },
+            {
+                q: "A clerk, sheriff, or other officer who neglects or refuses to perform a duty required under the Texas Rules of Civil Procedure may be punished for contempt and set the fine at __________.",
+                options: ["less than $50", "not less than $10 nor more than $50", "not less than $10 nor more than $100", "not more than $200"],
+                correct: "not less than $10 nor more than $50",
+                ref: "TRCP Rule 15. The exact fine range is $10 to $50.",
+                id: 26
+            },
+            {
+                q: "A person commits an offense only if he __________ engages in conduct.",
+                options: ["responsibly", "performs and", "voluntarily", "first"],
+                correct: "voluntarily",
+                ref: "PC Sec. 6.01 (Requirement of Voluntary Act or Omission). Criminal liability requires a voluntary act.",
+                id: 27
+            },
+            {
+                q: "An operator may not stop, stand, or park a vehicle within __________ feet of a fire hydrant.",
+                options: ["15", "20", "25", "30"],
+                correct: "15",
+                ref: "TRC Sec. 545.302(b)(7).",
+                id: 28
+            },
+            {
+                q: "The health-related components are more important to well-being and quality of life than the __________ components.",
+                options: ["fitness-related", "wellness-related", "skill-related", "mental-related"],
+                correct: "skill-related",
+                ref: "TCOLE Physical Fitness. The health-related components (e.g., cardiovascular endurance) directly affect health, while skill-related components (e.g., agility, speed) affect performance.",
+                id: 29
+            },
+            {
+                q: "__________ means the human kidney, liver, heart, lung, pancreas, eye, bone, skin, fetal tissue, or any other human organ or tissue.",
+                options: ["Human tissue", "Human parts", "Human organ", "Human derivatives"],
+                correct: "Human organ",
+                ref: "PC Sec. 1.07(a)(26-a) (Defining 'Human Organ').",
+                id: 30
+            },
+            {
+                q: "Any peace officer who is outside his/her jurisdiction may arrest, without warrant, a person who commits an offense within the officer's presence or view, if the offense is __________.",
+                options: ["an offense in progress", "a felony", "a misdemeanor", "criminal mischief at night"],
+                correct: "a felony",
+                ref: "CCP Art. 14.03(d). An officer may arrest for a felony or any offense under Chapter 42 (Disorderly Conduct) committed in the officer's presence or view *outside* their jurisdiction.",
+                id: 31
+            },
+            {
+                q: "According to Sec. 218.3 Legislatively Required Continuing Education for Licensees, the legislatively required continuing education program for individuals licensed as peace officers shall consist of __________ hours of training.",
+                options: ["20", "40", "60", "80"],
+                correct: "40",
+                ref: "37 TAC Sec. 218.3(c). Peace officers must complete 40 hours of continuing education during each 24-month training unit.",
+                id: 32
+            },
+            {
+                q: "__________ is an extension of the crime of assault. Dispute-anger-attack-death.",
+                options: ["Felony murder", "Sex and sadism", "Triangle killing", "Anger killing"],
+                correct: "Anger killing",
+                ref: "TCOLE Homicide Investigation. Describes a specific pattern of killing driven by rage or resentment.",
+                id: 33
+            },
+            {
+                q: "Which of the following may cause an offense of robbery to be upgraded to aggravated robbery?",
+                options: ["threatens or places a 45 year old person in fear of imminent bodily injury or death", "causes bodily injury to another", "uses or exhibits a deadly weapon", "implies that a weapon is in his pocket of a jacket, but never exhibits the weapon", "both c & d"],
+                correct: "both c & d",
+                ref: "PC Sec. 29.03 (Aggravated Robbery). An offense is aggravated if the actor 'uses or exhibits a deadly weapon' (c). The Texas Court of Criminal Appeals has held that a threat/display implying a deadly weapon is sufficient to satisfy the 'exhibits' element (d).",
+                id: 34
+            },
+            {
+                q: "Any communication requesting a response to an emergency is emergency communications.",
+                options: ["True", "False"],
+                correct: "True",
+                ref: "TCOLE Professional Policing. The broad definition of emergency communication is any message that requires an urgent public safety response.",
+                id: 35
+            },
+            {
+                q: "Which of the following crimes justifies the use of deadly force to prevent the \"imminent commission\" of the offense?",
+                options: ["theft during the nighttime", "criminal mischief during the nighttime", "robbery", "burglary", "deadly force is justified in all of the above"],
+                correct: "deadly force is justified in all of the above",
+                ref: "PC Sec. 9.42 (Deadly Force to Protect Property). This statute lists specific crimes (Burglary, Arson, Robbery, Aggravated Robbery, Theft during nighttime, Criminal Mischief during nighttime). Since both Robbery and Burglary are correct, and 'all of the above' is incorrect, Burglary is the most commonly cited 'best' single answer for this type of question, but either (c) or (d) are factually correct under 9.42.",
+                id: 36
+            },
+            {
+                q: "Some of the effects that a hazardous materials event has on society are extremely variable, ranging from little or no harm to __________.",
+                options: ["A minor economic loss", "A decline in the chemical stock", "A massive loss of life and damage to property", "None of the above"],
+                correct: "A massive loss of life and damage to property",
+                ref: "TCOLE Hazardous Materials. Highlights the severity of the worst-case scenario.",
+                id: 37
+            },
+            {
+                q: "__________ is a vehicle, other than a passenger car or truck, that is designed and adapted for use as a farm implement, machinery, or tool for tilling the soil; a towed vehicle that transports to the field and spreads fertilizer or agricultural chemicals; or a motor vehicle designed and adapted to deliver feed to livestock.",
+                options: ["Truck", "Motorcycle", "Implement of husbandry", "Farm tractor"],
+                correct: "Implement of husbandry",
+                ref: "TRC Sec. 541.201(5).",
+                id: 38
+            },
+            {
+                q: "__________ means one who does not retain a lawyer but, instead, appears on one's own behalf in court.",
+                options: ["Ad litem", "Ex Parte", "In Re", "Pro Se"],
+                correct: "Pro Se",
+                ref: "TCOLE Courtroom Procedures. A party representing themselves is appearing *pro se* (for oneself).",
+                id: 39
+            },
+            {
+                q: "There are appropriate reasons for unusual traffic stops but police work must __________.",
+                options: ["take race into consideration", "stop short of cultural stereotyping and racism", "occasionally take race and ethnicity into account", "always take race and ethnicity into consideration"],
+                correct: "stop short of cultural stereotyping and racism",
+                ref: "CCP Art. 2.131-2.138 (Racial Profiling) and TCOLE Ethics/Racial Profiling training.",
+                id: 40
+            },
+            {
+                q: "The required distance for tail lamps to be visible is __________.",
+                options: ["600 feet", "1,000 feet", "500 feet", "300 feet", "1,500 feet"],
+                correct: "1,000 feet",
+                ref: "TRC Sec. 547.322(d).",
+                id: 41
+            },
+            {
+                q: "Tegradol, lithium, Depakote control moodswings are are used as __________.",
+                options: ["Antidepressants", "Mood stabilizers", "Anti-anxiety drugs", "Anti-psychotics"],
+                correct: "Mood stabilizers",
+                ref: "TCOLE Crisis Intervention/Mental Health. These medications are commonly prescribed to treat Bipolar Disorder.",
+                id: 42
+            },
+            {
+                q: "Examples of ionizing radiation are __________.",
+                options: ["Nerve agents, persticides, irritants, ricin", "Plague, bacteria, anthrax", "Alpha, beta, gamme, neutron", "Vesicants, insectisides, botulinum toxin"],
+                correct: "Alpha, beta, gamme, neutron",
+                ref: "TCOLE Hazardous Materials. These are the four primary types of ionizing radiation.",
+                id: 43
+            },
+            {
+                q: "The Bill Blackwood Law Enforcement Management Institute of Texas shall establish and offer a program of initial training and a program of continuing education for police chiefs. As part of the initial training and continuing education for police chiefs required under this section, the institute shall establish a program on racial profiling. The program must include an examination of the best practices for __________.",
+                options: ["monitoring peace officers' compliance with laws and internal agency policies relating to racial profiling", "implementing laws and internal agency policies relating to preventing racial profiling", "analyzing and reporting collected information", "all of the above"],
+                correct: "all of the above",
+                ref: "CCP Art. 2.136 (Racial Profiling Education for Police Chiefs).",
+                id: 44
+            },
+            {
+                q: "If a person refuses the request of a peace officer to submit to the taking of a specimen, the peace officer shall request the person to sign a statement that: the officer requested that the person submit to the taking of a specimen; __________; and the person refused to submit to the taking of a specimen.",
+                options: ["Will be arrested", "Will be allowed to drive home", "Was informed of the consequences", "Will be issued a warrant for arrest"],
+                correct: "Was informed of the consequences",
+                ref: "TRC Sec. 724.032 (Refusal to Submit to Taking of Specimen).",
+                id: 45
+            },
+            {
+                q: "The decision to write a traffic ticket should be__________.",
+                options: ["made before the officer gets out of the patrol car", "based on the violator's attitude toward the traffic contact", "made only after hearing the driver's explanation", "based on how courteous the driver is toward the officer", "changed if the violator offers the officer a gratuity or reward for not writing a ticket"],
+                correct: "made only after hearing the driver's explanation",
+                ref: "TCOLE Traffic Enforcement/Discretion. Proper use of discretion requires gathering all information, including the driver's explanation.",
+                id: 46
+            },
+            {
+                q: "A person commits what offense if he intentionally or knowingly leaves a motel without paying his bill of $65?",
+                options: ["Theft", "Robbery", "Theft of Service", "No offense, the motel will send him a bill by mail", "Disorderly Conduct"],
+                correct: "Theft of Service",
+                ref: "PC Sec. 31.04 (Theft of Service). This covers securing performance of a service by deception, threat, or false token, or leaving with intent to avoid payment.",
+                id: 47
+            },
+            {
+                q: "Daytime is from __________.",
+                options: ["one-half hour after sunrise to one-half hour before sunset", "one hour before sunrise to one-half hour after sunset", "one-half hour before sunrise to one hour after sunset", "one-half hour before sunrise to one-half hour after sunset"],
+                correct: "one-half hour before sunrise to one-half hour after sunset",
+                ref: "TRC Sec. 541.401(2).",
+                id: 48
+            },
+            {
+                q: "Art. 2.13 states \"It is the duty of every peace officer to __________ within the officer's jurisdiction.\"",
+                options: ["enforce the law", "prevent crime", "preserve the peace", "arrest criminals"],
+                correct: "preserve the peace",
+                ref: "CCP Art. 2.13(a). The full statute lists multiple duties, but 'preserve the peace' is the first and foundational duty.",
+                id: 49
+            },
+            {
+                q: "The Emotional - Rational Thinking Scale states that as a person's emotions rise, their rational thinking declines.",
+                options: ["True", "False"],
+                correct: "True",
+                ref: "TCOLE De-Escalation/Crisis Intervention. This fundamental concept dictates how stress affects decision-making.",
+                id: 50
+            }
+        ];
+
+        // --- State Management ---
+        let currentAnswers = {};
+        let examStarted = false;
+        let timerInterval;
+
+        // --- UI Rendering Functions ---
+
+        // Renders the questions in Study Mode
+        function renderStudyMode() {
+            const container = document.getElementById('study-questions');
+            container.innerHTML = ''; // Clear previous content
+
+            questions.forEach((q, index) => {
+                const questionElement = document.createElement('div');
+                questionElement.className = 'question-card bg-white p-6 rounded-xl border border-gray-200';
+                questionElement.innerHTML = `
+                    <p class="text-lg font-semibold text-gray-800 mb-4">Q${index + 1}: ${q.q} (${q.id})</p>
+                    <div class="space-y-3">
+                        ${q.options.map(option => `
+                            <div class="p-3 rounded-lg border text-gray-700
+                                ${option === q.correct ? 'correct-answer border-green-500' : 'bg-gray-50 border-gray-200'}">
+                                ${option}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="mt-4 p-3 text-sm bg-blue-100 text-blue-800 rounded-lg border-l-4 border-blue-500">
+                        <span class="font-bold">Reference:</span> ${q.ref}
+                    </div>
+                `;
+                container.appendChild(questionElement);
+            });
+        }
+
+        // Renders the questions for Practice Exam Mode
+        function renderExamMode() {
+            const container = document.getElementById('exam-questions');
+            container.innerHTML = '';
+            document.getElementById('exam-results').classList.add('hidden');
+            document.getElementById('submit-exam-btn').classList.remove('hidden');
+            currentAnswers = {}; // Reset answers for a new exam
+
+            questions.forEach((q, index) => {
+                const qKey = `q${q.id}`;
+                const questionElement = document.createElement('div');
+                questionElement.className = 'question-card bg-white p-6 rounded-xl border border-gray-200';
+                questionElement.setAttribute('data-q-id', qKey);
+                questionElement.innerHTML = `
+                    <p class="text-lg font-semibold text-gray-800 mb-4">Q${index + 1}: ${q.q}</p>
+                    <div class="space-y-3">
+                        ${q.options.map((option, optIndex) => `
+                            <button
+                                class="answer-btn w-full p-3 rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
+                                onclick="selectAnswer('${qKey}', '${option.replace(/'/g, "\\'")}')"
+                                data-option-value="${option.replace(/'/g, "\\'")}"
+                            >
+                                ${option}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500">Your Answer: <span id="answer-status-${qKey}" class="font-medium text-gray-700">None Selected</span></div>
+                `;
+                container.appendChild(questionElement);
+            });
+
+            startExamTimer();
+        }
+
+        // --- Exam Logic ---
+
+        function startExamTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            let seconds = 0;
+            const timerDisplay = document.getElementById('exam-timer');
+            examStarted = true;
+
+            function formatTime(totalSeconds) {
+                const minutes = Math.floor(totalSeconds / 60);
+                const secs = totalSeconds % 60;
+                return `Time: ${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+
+            timerInterval = setInterval(() => {
+                seconds++;
+                timerDisplay.textContent = formatTime(seconds);
+            }, 1000);
+
+            // Update score display
+            document.getElementById('exam-score').textContent = `Score: 0 / ${questions.length}`;
+        }
+
+        function selectAnswer(qKey, answer) {
+            if (!examStarted) return;
+
+            currentAnswers[qKey] = answer;
+
+            // Update UI for selected button
+            const qElement = document.querySelector(`[data-q-id="${qKey}"]`);
+            const buttons = qElement.querySelectorAll('.answer-btn');
+            let selectedCount = 0;
+
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-blue-200', 'border-blue-500');
+                if (btn.getAttribute('data-option-value') === answer) {
+                    btn.classList.add('bg-blue-200', 'border-blue-500');
+                    selectedCount++;
+                }
+            });
+
+            // Update status text
+            document.getElementById(`answer-status-${qKey}`).textContent = selectedCount > 0 ? answer : 'None Selected';
+        }
+
+        function submitExam() {
+            if (timerInterval) clearInterval(timerInterval);
+            examStarted = false;
+
+            let correctCount = 0;
+            const totalQuestions = questions.length;
+            const reviewContainer = document.getElementById('exam-review');
+            reviewContainer.innerHTML = '';
+            document.getElementById('exam-results').classList.remove('hidden');
+            document.getElementById('submit-exam-btn').classList.add('hidden');
+
+            questions.forEach((q, index) => {
+                const qKey = `q${q.id}`;
+                const userAnswer = currentAnswers[qKey];
+                const isCorrect = userAnswer === q.correct;
+
+                const reviewElement = document.createElement('div');
+                reviewElement.className = `p-4 rounded-lg shadow-sm border ${isCorrect ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50'}`;
+                
+                let feedbackText;
+                if (isCorrect) {
+                    correctCount++;
+                    feedbackText = `<span class="text-green-600 font-bold">CORRECT.</span>`;
+                } else {
+                    feedbackText = `<span class="text-red-600 font-bold">INCORRECT.</span> Your answer was: "${userAnswer || 'Not Answered'}"`;
+                }
+
+                reviewElement.innerHTML = `
+                    <p class="font-bold text-gray-800">Q${index + 1}: ${q.q}</p>
+                    <p class="mt-1 text-sm">${feedbackText}</p>
+                    <p class="text-sm mt-1">
+                        <span class="font-semibold text-green-700">Correct Answer:</span> ${q.correct}
+                    </p>
+                    <p class="text-xs mt-1 text-blue-700">
+                        <span class="font-semibold">Reference:</span> ${q.ref}
+                    </p>
+                `;
+                reviewContainer.appendChild(reviewElement);
+
+                // Update the exam question card in place to show results visually
+                const qElement = document.querySelector(`[data-q-id="${qKey}"]`);
+                if (qElement) {
+                    const buttons = qElement.querySelectorAll('.answer-btn');
+                    buttons.forEach(btn => {
+                        const optionValue = btn.getAttribute('data-option-value');
+                        btn.disabled = true; // Disable buttons
+                        btn.classList.remove('bg-blue-200', 'border-blue-500', 'hover:bg-gray-100');
+                        
+                        if (optionValue === q.correct) {
+                            btn.classList.add('correct-answer', 'border-green-500');
+                        } else if (optionValue === userAnswer) {
+                            btn.classList.add('incorrect-answer', 'border-red-500');
+                        }
+                    });
+                }
+            });
+
+            // Display final score
+            const percent = ((correctCount / totalQuestions) * 100).toFixed(1);
+            const passStatus = percent >= 70 ? 'text-green-700' : 'text-red-700';
+            document.getElementById('final-score').innerHTML = `
+                <p class="${passStatus}">Final Score: ${correctCount} / ${totalQuestions} (${percent}%)</p>
+            `;
+            document.getElementById('exam-score').textContent = `Score: ${correctCount} / ${totalQuestions}`;
+        }
+
+        // --- Tab Control ---
+        function showTab(mode) {
+            document.getElementById('study-mode').classList.add('hidden');
+            document.getElementById('exam-mode').classList.add('hidden');
+            document.getElementById('tab-study').classList.remove('active');
+            document.getElementById('tab-exam').classList.remove('active');
+
+            if (mode === 'study') {
+                document.getElementById('study-mode').classList.remove('hidden');
+                document.getElementById('tab-study').classList.add('active');
+            } else if (mode === 'exam') {
+                document.getElementById('exam-mode').classList.remove('hidden');
+                document.getElementById('tab-exam').classList.add('active');
+                renderExamMode(); // Rerender for a fresh exam
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderStudyMode();
+            showTab('study'); // Default to Study Mode
+        });
+    </script>
+</body>
+</html>
